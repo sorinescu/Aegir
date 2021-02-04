@@ -13,15 +13,15 @@
 
 #define BUTTON_PIN 0
 #define BAUDRATE 115200
-#define TEMP_SAMPLE_CAPACITY 5
-#define TEMP_SAMPLE_INTERVAL_MILLIS 1000
+#define TEMP_SAMPLE_CAPACITY 4000
+#define TEMP_SAMPLE_INTERVAL_MILLIS 5000
 
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 PositiveTempMeasure temp(D4);
-API api(&temp);
 TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
+API api(&temp, &temp_history);
 
 static void onPressedOnce()
 {
@@ -177,7 +177,7 @@ void loop()
 
   // Continuously read the status of the button.
   button.read();
-  
+
   // Update WiFi manager state
   wm.process();
 
@@ -191,12 +191,15 @@ void loop()
   temp.loop();
 
   // Collect periodic temp samples in a circular buffer
-  temp_history.collect();
+  bool new_temp_sample = temp_history.collect();
 
-  Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
-  for (uint16_t i=0; i<temp_history.size(); i++) {
-    Serial.printf("%.2f ", temp_history[i]);
-  }
-  Serial.println();
-  delay(500);
+  // Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
+  // for (uint16_t i=0; i<temp_history.size(); i++) {
+  //   Serial.printf("%.2f ", temp_history.at(i));
+  // }
+  // Serial.println();
+  // delay(500);
+
+  if (new_temp_sample && api.isStarted())
+    api.sendCurrentTemp();
 }

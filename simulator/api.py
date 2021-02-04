@@ -61,7 +61,7 @@ def temperature_history_get():
     }
 
 
-@app.route('/temperature/stream', methods=['GET'])
+@app.route('/events', methods=['GET'])
 def listen():
     # SSE stream
     def stream():
@@ -85,7 +85,7 @@ def send_temperature_event():
     }
     temp_history.append(data)
 
-    msg = f"data: {json.dumps(data)}\n\n"
+    msg = f"event: temperature\ndata: {json.dumps(data)}\n\n"
     announcer.announce(msg)
 
 

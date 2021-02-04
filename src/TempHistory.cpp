@@ -3,7 +3,7 @@
 
 #define HIST_OFFSET(offset) ((uint16_t(offset) + _curr_idx) % _history.capacity())
 
-void TempHistory::collect()
+bool TempHistory::collect()
 {
     unsigned long t = millis();
 
@@ -12,34 +12,43 @@ void TempHistory::collect()
         _curr_idx = 0;
         _curr_millis = t;
         _size = 1;
-        return;
+        return false;
     }
 
-    uint16_t curr_offset = (t - _curr_millis) / _sampling_interval_millis;
-    Serial.printf("before t=%ld curr_millis=%ld curr_idx=%hu curr_offset=%hu curr_size=%hu\n", t, _curr_millis, _curr_idx, curr_offset, _size);
+    uint16_t offset = (t - _curr_millis) / _sampling_interval_millis;
+    // Serial.printf("before t=%ld curr_millis=%ld curr_idx=%hu offset=%hu curr_size=%hu\n", t, _curr_millis, _curr_idx, offset, _size);
 
     // Zero out missing intermediate values
-    for (uint16_t i = 0; i + 1 < curr_offset; i++)
+    for (uint16_t i = 0; i + 1 < offset; i++)
         _history.set(HIST_OFFSET(i), 0);
 
-    _history.set(HIST_OFFSET(curr_offset), _temp->currentRawTemp(_precision));
+    _curr_idx = HIST_OFFSET(offset);
+    _curr_millis += _sampling_interval_millis * offset;
 
-    _curr_idx = HIST_OFFSET(curr_offset);
-    _curr_millis += _sampling_interval_millis * curr_offset;
+    _history.set(_curr_idx, _temp->currentRawTemp(_precision));
 
-    _size += curr_offset;
+    _size += offset;
     if (_size > _history.capacity())
         _size = _history.capacity();
 
-    Serial.printf("after t=%ld curr_millis=%ld curr_idx=%hu curr_offset=%hu curr_size=%hu capacity=%hu\n", t, _curr_millis, _curr_idx, curr_offset, _size, _history.capacity());
+    // Serial.printf("after curr_idx=%hu curr_size=%hu capacity=%hu\n", _curr_idx, _size, _history.capacity());
+    return offset != 0;     // a new sample was collected
 }
 
-float TempHistory::operator[](uint16_t idx)
+float TempHistory::at(uint16_t idx)
 {
     if (idx >= _size)
         return 0;
 
-    uint16_t offset = HIST_OFFSET(idx - _size + uint16_t(1));
-    Serial.printf("idx=%hu offset=%hu\n", idx, offset);
+    uint16_t offset = (idx + _curr_idx + 1) % _size;
+    // Serial.printf("idx=%hu offset=%hu\n", idx, offset);
     return _temp->convertRawTemp(_history.get(offset), _precision);
+}
+
+unsigned long TempHistory::timeMillisAt(uint16_t idx)
+{
+    if (idx >= _size)
+        return 0;
+
+    return _curr_millis - (_size - 1 - idx) * _sampling_interval_millis;
 }

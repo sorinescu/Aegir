@@ -66,9 +66,9 @@
     }
 
     if (!!window.EventSource) {
-        var source = new EventSource('/temperature/stream');
+        var source = new EventSource('/events');
 
-        source.addEventListener('message', function(e) {
+        source.addEventListener('temperature', function(e) {
                 var data = JSON.parse(e.data);
                 updateTemperature(data.value);
                 updateTime(data.ts);

@@ -22,11 +22,13 @@ public:
         _history.begin(precision, capacity);
     }
 
-    void collect();
+    bool collect();
     
     unsigned long startTimeMillis() const { return _curr_millis; }
     uint16_t size() const { return _size; }
-    float operator[](uint16_t idx);
+    
+    unsigned long timeMillisAt(uint16_t idx);
+    float at(uint16_t idx);
 };
 
 #endif
