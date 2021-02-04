@@ -6,12 +6,14 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
+#include <LittleFS.h>
 
 #include "API.hpp"
+#include "TempMeasure.hpp"
 
 AsyncWebServer server(80);
 
-const char* PARAM_MESSAGE = "message";
+const char *PARAM_MESSAGE = "message";
 
 void API::start()
 {
@@ -20,8 +22,20 @@ void API::start()
 
     Serial.println("Starting async web server...");
 
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "Hello, world");
+    server.serveStatic("/css", LittleFS, "/css");
+    server.serveStatic("/img", LittleFS, "/img");
+    server.serveStatic("/js", LittleFS, "/js");
+
+    server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/index.html", String(), false, [this](const String &var) -> String {
+            if (var == "TEMPERATURE")
+                return String(_temp->currentTemp());
+            return "UNKNOWN";
+        });
+    });
+
+    server.on("/temperature", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_temp->currentTemp()));
     });
 
     // Send a GET request to <IP>/get?message=<message>

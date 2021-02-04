@@ -69,18 +69,18 @@ void PositiveTempMeasure::loop()
     _ds.select(_addr);
     _ds.write(0xBE); // Read Scratchpad
 
-    Serial.print("  Data = ");
-    Serial.print(present, HEX);
-    Serial.print(" ");
+    // Serial.print("  Data = ");
+    // Serial.print(present, HEX);
+    // Serial.print(" ");
     for (byte i = 0; i < 9; i++)
     { // we need 9 bytes
         data[i] = _ds.read();
-        Serial.print(data[i], HEX);
-        Serial.print(" ");
+        // Serial.print(data[i], HEX);
+        // Serial.print(" ");
     }
-    Serial.print(" CRC=");
-    Serial.print(OneWire::crc8(data, 8), HEX);
-    Serial.println();
+    // Serial.print(" CRC=");
+    // Serial.print(OneWire::crc8(data, 8), HEX);
+    // Serial.println();
 
     // Convert the data to actual temperature
     // because the result is a 16 bit signed integer, it should
@@ -114,12 +114,12 @@ void PositiveTempMeasure::loop()
         _value = 0;
     }
 
-    Serial.print("  Temperature = ");
-    Serial.println(currentTemp());
-    Serial.print("  Raw temperature = ");
-    Serial.println(currentRawTemp(10), HEX);
-    Serial.print("  Temperature from raw = ");
-    Serial.println(convertRawTemp(currentRawTemp(10), 10));
+    // Serial.print("  Temperature = ");
+    // Serial.println(currentTemp());
+    // Serial.print("  Raw temperature = ");
+    // Serial.println(currentRawTemp(10), HEX);
+    // Serial.print("  Temperature from raw = ");
+    // Serial.println(convertRawTemp(currentRawTemp(10), 10));
 }
 
 uint16_t PositiveTempMeasure::currentRawTemp(byte precision_bits)

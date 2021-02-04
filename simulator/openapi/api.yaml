@@ -1,0 +1,55 @@
+openapi: 3.0.1
+
+info:
+  title: Aegir API
+  description: API of the Aegir mash controller
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 1.0.0
+
+paths:
+  /:
+    get:
+      operationId: api.go_home
+      responses:
+        200:
+          description: Successfully loaded html page.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /time:
+    get:
+      operationId: api.device_time_get
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/plain:
+              schema:
+                type: number
+
+  /temperature:
+    get:
+      operationId: api.temperature_get
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/plain:
+              schema:
+                type: number
+
+  /temperature/history:
+    get:
+      operationId: api.temperature_history_get
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: dict
+                

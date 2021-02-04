@@ -3,19 +3,25 @@
  * Implements TRIGGEN_PIN button press, press for ondemand configportal, hold for 3 seconds for reset settings.
  */
 #include <Arduino.h>
-#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+#include <ArduinoOTA.h>
+#include <LittleFS.h>
 #include <EasyButton.h>
+#include <WiFiManager.h>
 #include "API.hpp"
 #include "TempMeasure.hpp"
+#include "TempHistory.hpp"
 
 #define BUTTON_PIN 0
 #define BAUDRATE 115200
+#define TEMP_SAMPLE_CAPACITY 5
+#define TEMP_SAMPLE_INTERVAL_MILLIS 1000
 
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
-API api;
 PositiveTempMeasure temp(D4);
+API api(&temp);
+TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
 
 static void onPressedOnce()
 {
@@ -134,19 +140,63 @@ void setup()
   {
     Serial.println("Configportal running");
   }
+
+  LittleFS.begin();
+
+  // OTA updates
+  ArduinoOTA.setHostname("Aegir");
+  ArduinoOTA.onStart([]() {
+    LittleFS.end();
+    Serial.println("Start OTA");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd OTA");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
 }
 
 void loop()
 {
+  ArduinoOTA.handle();
+
   // Continuously read the status of the button.
   button.read();
+  
   // Update WiFi manager state
   wm.process();
 
+  // Start web server
   if (!api.isStarted() && WiFi.status() == WL_CONNECTED)
   {
     api.start();
   }
 
+  // Read temperature continuously
   temp.loop();
+
+  // Collect periodic temp samples in a circular buffer
+  temp_history.collect();
+
+  Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
+  for (uint16_t i=0; i<temp_history.size(); i++) {
+    Serial.printf("%.2f ", temp_history[i]);
+  }
+  Serial.println();
+  delay(500);
 }
