@@ -20,6 +20,73 @@ paths:
               schema:
                 type: string
 
+  /{filename}.html:
+    get:
+      operationId: api.get_html
+      responses:
+        200:
+          description: Successfully loaded html page.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /service-worker.js:
+    get:
+      operationId: api.get_service_worker_js
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/javascript:
+              schema:
+                type: string
+
+  /manifest.json:
+    get:
+      operationId: api.get_manifest_json
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /img/{filename}:
+    get:
+      parameters:
+      - name: filename
+        in: path
+        required: true
+        schema:
+          type: string
+      operationId: api.get_img_file
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/javascript:
+              schema:
+                type: string
+
+  /js/{filename}:
+    get:
+      parameters:
+      - name: filename
+        in: path
+        required: true
+        schema:
+          type: string
+      operationId: api.get_js_file
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/javascript:
+              schema:
+                type: string
+
   /time:
     get:
       operationId: api.device_time_get
@@ -52,4 +119,29 @@ paths:
             application/json:
               schema:
                 type: dict
-                
+
+  /push/subscription:
+    put:
+      operationId: api.push_add_subscription
+      requestBody:
+        description: Notification subscription
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: successful operation
+
+  /push:
+    post:
+      operationId: api.push_message
+      requestBody:
+        description: Notification message (debug)
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        200:
+          description: successful operation

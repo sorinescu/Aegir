@@ -13,13 +13,17 @@
 
 #define BUTTON_PIN 0
 #define BAUDRATE 115200
+
+// #define TEMP_PIN D4 // LoLin board
+#define TEMP_PIN 0     // Flash pin (WiFi rubber ducky board)
+
 #define TEMP_SAMPLE_CAPACITY 4000
 #define TEMP_SAMPLE_INTERVAL_MILLIS 5000
 
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
-PositiveTempMeasure temp(D4);
+PositiveTempMeasure temp(TEMP_PIN);
 TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
 API api(&temp, &temp_history);
 

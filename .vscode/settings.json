@@ -1,5 +1,7 @@
 {
-    "python.venvFolders": [
-        "/Users/sorin/.virtualenv"
-    ]
+  "python.venvFolders": ["/Users/sorin/.virtualenv"],
+  "[html]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "sissel.shopify-liquid",
+  }
 }

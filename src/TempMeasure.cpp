@@ -86,14 +86,14 @@ void PositiveTempMeasure::loop()
     // because the result is a 16 bit signed integer, it should
     // be stored to an "int16_t" type, which is always 16 bits
     // even when compiled on a 32 bit processor.
-    _value = (data[1] << 8) | data[0];
+    int16_t value = (data[1] << 8) | data[0];
     if (_type_s)
     {
-        _value = _value << 3; // 9 bit resolution default
+        value = value << 3; // 9 bit resolution default
         if (data[7] == 0x10)
         {
             // "count remain" gives full 12 bit resolution
-            _value = (_value & 0xFFF0) + 12 - data[6];
+            value = (value & 0xFFF0) + 12 - data[6];
         }
     }
     else
@@ -101,17 +101,17 @@ void PositiveTempMeasure::loop()
         byte cfg = (data[4] & 0x60);
         // at lower res, the low bits are undefined, so let's zero them
         if (cfg == 0x00)
-            _value = _value & ~7; // 9 bit resolution, 93.75 ms
+            value = value & ~7; // 9 bit resolution, 93.75 ms
         else if (cfg == 0x20)
-            _value = _value & ~3; // 10 bit res, 187.5 ms
+            value = value & ~3; // 10 bit res, 187.5 ms
         else if (cfg == 0x40)
-            _value = _value & ~1; // 11 bit res, 375 ms
+            value = value & ~1; // 11 bit res, 375 ms
                             //// default is 12 bit resolution, 750 ms conversion time
     }
 
     // Only measure positive temperatures to get rid of sign bit (i.e. 11 bits instead of 12)
-    if ((int16_t)_value < 0) {
-        _value = 0;
+    if (value > 0) {
+        _value = value;
     }
 
     // Serial.print("  Temperature = ");
