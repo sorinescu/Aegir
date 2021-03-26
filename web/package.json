@@ -1,0 +1,111 @@
+{
+  "name": "aegir",
+  "version": "1.0.0-beta",
+  "description": "Controller for Oneconcept Hopfengott electric mash kettle",
+  "scripts": {
+    "start": "gulp start",
+    "build": "gulp build",
+    "preview": "gulp build --preview",
+    "svg-optimize": "svgo -f svg/brand --pretty",
+    "unused-files": "node build/unused-files.js",
+    "release": "release-it",
+    "svg-icons": "gulp svg-icons",
+    "percy": "gulp build && npx percy snapshot demo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sorinescu/Aegir.git"
+  },
+  "keywords": [
+    "css",
+    "sass",
+    "mobile-first",
+    "responsive",
+    "front-end",
+    "web",
+    "tabler"
+  ],
+  "author": "sorinescu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sorinescu/Aegir/issues"
+  },
+  "engines": {
+    "node": ">=10"
+  },
+  "files": [
+    "dist/**/*",
+    "src/js/**/*.{js,map}",
+    "src/scss/**/*.scss",
+    "src/static/**/*"
+  ],
+  "style": "dist/css/aegir.css",
+  "sass": "src/scss/aegir.scss",
+  "main": "dist/js/aegir.js",
+  "homepage": "https://github.com/sorinescu/Aegir",
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/preset-env": "^7.12.16",
+    "@rollup/plugin-commonjs": "^17.1.0",
+    "@rollup/plugin-node-resolve": "^11.2.0",
+    "@rollup/plugin-replace": "^2.3.4",
+    "@rollup/stream": "^2.0.0",
+    "autoprefixer": "^10.2.4",
+    "browser-sync": "^2.26.14",
+    "critical": "^2.0.6",
+    "cross-spawn": "^7.0.3",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-clean-css": "^4.3.0",
+    "gulp-debug": "^4.0.0",
+    "gulp-header": "^2.0.9",
+    "gulp-minify": "^3.1.0",
+    "gulp-postcss": "^9.0.0",
+    "gulp-purgecss": "^4.0.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-rtlcss": "^1.4.1",
+    "gulp-sass": "^4.1.0",
+    "postcss": "^8.2.6",
+    "release-it": "^14.4.0",
+    "rollup": "^2.39.0",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-cleanup": "^3.2.1",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0",
+    "yaml": "^1.10.0",
+    "yargs": "^16.2.0"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.7.0",
+    "@tabler/core": "1.0.0-beta",
+    "@tabler/icons": "^1.39.1",
+    "apexcharts": "^3.25.0",
+    "autosize": "^4.0.2",
+    "beedle": "^0.8.1",
+    "bootstrap": "twbs/bootstrap#5c32767e0e0dbac2d934bcdee03719a65d3f1187",
+    "choices.js": "^9.0.1",
+    "countup.js": "^2.0.7",
+    "flatpickr": "^4.6.9",
+    "imask": "^6.0.7",
+    "litepicker": "^2.0.6",
+    "nouislider": "^14.6.3",
+    "store2": "^2.12.0"
+  },
+  "resolutions": {
+    "**/**/node-gyp": "^5.0.0"
+  },
+  "release-it": {
+    "hooks": {
+      "after:bump": "gulp build --latest-version ${latestVersion} --new-version ${version} && gulp build-demo",
+      "after:release": "echo Successfully released ${name} v${latestVersion} to ${repo.repository}."
+    },
+    "git": {
+      "requireCleanWorkingDir": false,
+      "addUntrackedFiles": true,
+      "tagName": "v${version}"
+    },
+    "github": {
+      "release": true
+    }
+  }
+}

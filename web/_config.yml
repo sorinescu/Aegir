@@ -1,0 +1,201 @@
+source: src/pages
+destination: tmp
+
+keep_files:
+  - css
+  - dist
+  - js
+  - img
+  - static
+  
+use-iconfont: false
+rtl: false
+
+title: Aegir
+description: Controller for Oneconcept Hopfengott electric mash kettle.
+homepage: https://github.com/sorinescu/Aegir
+github-url: https://github.com/sorinescu/Aegir
+
+npm-package: "aegir"
+
+debug: false
+
+layout-dark: false
+
+plugins:
+  - jekyll-random
+  - jekyll-tidy
+  - jekyll-timeago
+  - jekyll-redirect-from
+
+exclude:
+  - .jekyll-cache
+  - redirects.json
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+jekyll_tidy:
+  compress_html: true
+  ignore_env: development
+
+collections:
+  docs:
+    output: true
+
+defaults:
+  - scope:
+      type: "pages"
+      path: "*.md"
+    values:
+      layout: markdown
+  - scope:
+      type: "pages"
+    values:
+      layout: default
+  - scope:
+      type: "docs"
+    values:
+      layout: docs
+
+colors:
+  blue:
+    hex: '#206bc4'
+    title: Blue
+  azure:
+    hex: '#45aaf2'
+    title: Azure
+  indigo:
+    hex: '#6574cd'
+    title: Indigo
+  purple:
+    hex: '#a55eea'
+    title: Purple
+  pink:
+    hex: '#f66d9b'
+    title: Pink
+  red:
+    hex: '#fa4654'
+    title: Red
+  orange:
+    hex: '#fd9644'
+    title: Orange
+  yellow:
+    hex: '#f1c40f'
+    title: Yellow
+  lime:
+    hex: '#7bd235'
+    title: Lime
+  green:
+    hex: '#5eba00'
+    title: Green
+  teal:
+    hex: '#2bcbba'
+    title: Teal
+  cyan:
+    hex: '#17a2b8'
+    title: Cyan
+
+colors-extra:
+  white:
+    hex: '#ffffff'
+    title: White
+  dark:
+    hex: '#303645'
+    title: Dark
+  gray:
+    hex: '#868e96'
+    title: Gray
+
+variants:
+  - name: success
+    icon: check
+  - name: info
+    icon: info-circle
+  - name: warning
+    icon: alert-triangle
+  - name: danger
+    icon: alert-circle
+
+theme-colors:
+  primary:
+    class: primary
+    title: Primary
+  secondary:
+    class: secondary
+    title: Secondary
+  success:
+    class: success
+    title: Success
+  warning:
+    class: warning
+    title: Warning
+  danger:
+    class: danger
+    title: Danger
+  info:
+    class: info
+    title: Info
+  light:
+    class: light
+    title: Light
+  dark:
+    class: dark
+    title: Dark
+
+button-states:
+  - class:
+    title: Normal
+  - class: active
+    title: Active state
+  - class: disabled
+    title: Disabled
+
+socials:
+  facebook:
+    icon: brand-facebook
+    title: Facebook
+  twitter:
+    icon: brand-twitter
+    title: Twitter
+  google:
+    icon: brand-google
+    title: Google
+  youtube:
+    icon: brand-youtube
+    title: Youtube
+  vimeo:
+    icon: brand-vimeo
+    title: Vimeo
+  dribbble:
+    icon: brand-dribbble
+    title: Dribbble
+  github:
+    icon: brand-github
+    title: Github
+  instagram:
+    icon: brand-instagram
+    title: Instagram
+  pinterest:
+    icon: brand-pinterest
+    title: Pinterest
+  vk:
+    icon: brand-vk
+    title: VK
+  rss:
+    icon: rss
+    title: RSS
+  flickr:
+    icon: brand-flickr
+    title: Flickr
+  bitbucket:
+    icon: brand-bitbucket
+    title: Bitbucker
+  tabler:
+    icon: brand-tabler
+    title: Tabler
+
+months-short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+months-long: ['January', 'Febuary', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

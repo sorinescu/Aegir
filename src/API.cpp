@@ -7,6 +7,7 @@
 #endif
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
+#include <errno.h>
 
 #include "API.hpp"
 #include "TempMeasure.hpp"
@@ -39,7 +40,24 @@ void API::start()
     server.on("/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
         _temp_stream_idx = (uint16_t)-1;
 
-        AsyncWebServerResponse *response = request->beginChunkedResponse("application/json", [this](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+        unsigned long start_time = 0;
+        if (request->hasArg("minutes"))
+        {
+            char *endptr;
+            const char *minutes_str = request->arg("minutes").c_str();
+
+            errno = 0;
+            unsigned long minutes = strtoul(minutes_str, &endptr, 10);
+            if (errno == ERANGE || *endptr != '\0' || minutes_str == endptr)
+            {
+                request->send(400, "text/plain", "Invalid 'minutes' parameter");
+                return;
+            }
+
+            start_time = millis() - minutes * 60000UL;
+        }
+
+        AsyncWebServerResponse *response = request->beginChunkedResponse("application/json", [this, start_time](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
             //Write up to "maxLen" bytes into "buffer" and return the amount written.
             //index equals the amount of bytes that have been already sent.
             //You will be asked for more data until 0 is returned.
@@ -54,6 +72,13 @@ void API::start()
             if (_temp_stream_idx > _temp_history->size())
             {
                 return 0;
+            }
+
+            // Keep the most recent time entries (after start_time)
+            for (; _temp_stream_idx < _temp_history->size(); _temp_stream_idx++)
+            {
+                if (_temp_history->timeMillisAt(_temp_stream_idx) >= start_time)
+                    break;
             }
 
             size_t sz;

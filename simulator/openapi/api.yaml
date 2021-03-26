@@ -20,16 +20,16 @@ paths:
               schema:
                 type: string
 
-  /{filename}.html:
-    get:
-      operationId: api.get_html
-      responses:
-        200:
-          description: Successfully loaded html page.
-          content:
-            text/html:
-              schema:
-                type: string
+  # /{filename}.html:
+  #   get:
+  #     operationId: api.get_html
+  #     responses:
+  #       200:
+  #         description: Successfully loaded html page.
+  #         content:
+  #           text/html:
+  #             schema:
+  #               type: string
 
   /service-worker.js:
     get:
@@ -112,6 +112,14 @@ paths:
   /temperature/history:
     get:
       operationId: api.temperature_history_get
+      parameters:
+      - name: minutes
+        in: query
+        description: Return only the last N minutes of data
+        required: false
+        style: simple
+        schema:
+          type: integer
       responses:
         200:
           description: successful operation

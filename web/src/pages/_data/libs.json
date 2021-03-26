@@ -1,0 +1,22 @@
+{
+  "global-libs": [
+  ],
+  "js-files": {
+    "countup": "countup",
+    "nouislider": "nouislider"
+  },
+  "js": {
+    "@tabler/core": "@tabler/core/dist/js/tabler.min.js",
+    "bootstrap": "bootstrap/dist/js/bootstrap.bundle.min.js",
+    "apexcharts": "apexcharts/dist/apexcharts.min.js",
+    "nouislider": "nouislider/distribute/nouislider.min.js",
+    "countup": "countup.js/dist/countUp.js",
+    "masonry": "https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js",
+    "choices": "choices.js/public/assets/scripts/choices.js",
+    "beedle": "beedle/src/beedle.js",
+    "store2": "store2/dist/store2.js"
+  },
+  "css": {
+    "@tabler/core": "@tabler/core/dist/css/tabler.min.css"
+  }
+}

@@ -6,9 +6,11 @@ import random
 import threading
 import time
 from pywebpush import webpush, WebPushException
+from flask_cors import CORS
 
 app = connexion.FlaskApp(__name__, specification_dir='openapi/',
                          arguments={'global': 'global_value'})
+CORS(app.app)
 
 # Simulate the device-local time by using random values
 local_t0 = time.time()
@@ -59,8 +61,8 @@ def go_home():
     return flask.send_from_directory('../data', 'index.html')
 
 
-def get_html(filename):
-    return flask.send_from_directory('../data', f"{filename}.html")
+# def get_html(filename):
+#     return flask.send_from_directory('../data', f"{filename}.html")
 
 
 def get_manifest_json():
@@ -87,10 +89,16 @@ def temperature_get():
     return temp_history[-1] or 50.0
 
 
-def temperature_history_get():
+def temperature_history_get(minutes=None):
+    t = device_time()
+    start_time = 0
+    if minutes:
+        minutes = int(minutes)
+        start_time = t - minutes * 60000
+
     return {
         'ts': device_time(),
-        'values': temp_history
+        'values': [t for t in temp_history if t['ts'] >= start_time]
     }
 
 
@@ -125,9 +133,9 @@ def listen():
 
 def send_temperature_event():
     '''
-    Send a random temperature reading every second
+    Send a random temperature reading every 5 seconds
     '''
-    threading.Timer(1.0, send_temperature_event).start()
+    threading.Timer(5.0, send_temperature_event).start()
 
     data = {
         'ts': device_time(),

@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.58.4/plotly.min.js"></script>
+    <script src="js/push.js"></script>
+    <style>
+        html {
+            font-family: Arial;
+            display: inline-block;
+            margin: 0px auto;
+            text-align: center;
+        }
+        
+        h2 {
+            font-size: 3.0rem;
+        }
+        
+        p {
+            font-size: 3.0rem;
+        }
+        
+        .units {
+            font-size: 1.2rem;
+        }
+        
+        .ds-labels {
+            font-size: 1.5rem;
+            vertical-align: middle;
+            padding-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Aegir</h2>
+    <p>
+        <i class="fas fa-thermometer-half" style="color:#059e8a;"></i>
+        <span class="ds-labels">Temperature</span>
+        <span id="temperature">%TEMPERATURE%</span>
+        <sup class="units">&deg;C</sup>
+    </p>
+    <p>
+        <i class="far fa-clock" style="color:#5b5c5c;"></i>
+        <span class="ds-labels">Time</span>
+        <span id="time">%TIME%</span>
+    </p>
+    <p>
+        <div id="tempHistory"></div>
+    </p>
+</body>
+<script>
+    function computeLocalTimeFromDevice(localTime, deviceCrtTime, deviceTimePoint) {
+        let timeDelta = localTime.getTime() - deviceCrtTime;
+        let d = new Date();
+        d.setTime(deviceTimePoint + timeDelta);
+        return d;
+    }
+
+    function updateTemperature(temp) {
+        document.getElementById("temperature").innerHTML = temp;
+    }
+
+    function updateTime(ts) {
+        document.getElementById("time").innerHTML = ts;
+    }
+
+    if (!!window.EventSource) {
+        var source = new EventSource('/events');
+
+        source.addEventListener('temperature', function(e) {
+                var data = JSON.parse(e.data);
+                updateTemperature(data.value);
+                updateTime(data.ts);
+
+                let time = new Date();
+                let update = {
+                    x: [
+                        [time]
+                    ],
+                    y: [
+                        [data.value]
+                    ]
+                };
+
+                var olderTime = time.setHours(time.getHours() - 1);
+                var futureTime = time.setHours(time.getHours() + 1);
+
+                var hourView = {
+                    xaxis: {
+                        type: 'date',
+                        range: [olderTime, futureTime]
+                    }
+                };
+                Plotly.relayout('tempHistory', hourView);
+                Plotly.extendTraces('tempHistory', update, [0])
+            },
+            false);
+
+        source.addEventListener('open', function(e) {
+            // Connection was opened.
+            console.log("Temperature stream connection opened");
+        }, false);
+
+        source.addEventListener('error', function(e) {
+            if (e.readyState == EventSource.CLOSED) {
+                console.log("Temperature stream connection closed");
+            }
+        }, false);
+    } else {
+        setInterval(function() {
+            fetch("/temperature")
+                .then(response => response.text())
+                .then(updateTemperature);
+        }, 1000);
+    }
+</script>
+
+<script>
+    fetch("/temperature/history")
+        .then(response => response.json())
+        .then(data => {
+            let localTime = new Date();
+
+            let xs = data.values.map(item => computeLocalTimeFromDevice(localTime, data.ts, item.ts));
+            let ys = data.values.map(item => item.value);
+            Plotly.newPlot('tempHistory', [{
+                x: xs,
+                y: ys,
+                mode: 'lines',
+                line: {
+                    color: '#80CAF6'
+                }
+            }]);
+        })
+</script>
+
+</html>

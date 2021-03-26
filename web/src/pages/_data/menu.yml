@@ -1,0 +1,13 @@
+home:
+  url: index.html
+  title: Home
+  icon: home
+
+base:
+  title: Interface
+  icon: package
+  columns: 1
+  children:
+    empty:
+      title: Empty page
+      url: empty.html

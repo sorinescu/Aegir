@@ -1,0 +1,12 @@
+{
+    "name": "Aegir brew controller",
+    "short_name": "Aegir",
+    "icons": [{
+        "src": "img/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+    }],
+    "start_url": "/index.html",
+    "display": "standalone",
+    "gcm_sender_id": "<Your Sender ID Here>"
+}
