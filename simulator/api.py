@@ -89,6 +89,10 @@ def temperature_get():
     return temp_history[-1] or 50.0
 
 
+def weight_get():
+    return random.randint(0, 100) * 0.1
+
+
 def temperature_history_get(minutes=None):
     t = device_time()
     start_time = 0
@@ -147,7 +151,23 @@ def send_temperature_event():
     announcer.announce(msg)
 
 
+def send_weight_event():
+    '''
+    Send a random weight reading every second
+    '''
+    threading.Timer(1.0, send_weight_event).start()
+
+    data = {
+        'ts': device_time(),
+        'value': random.randint(0, 100) * 0.1
+    }
+
+    msg = f"event: weight\ndata: {json.dumps(data)}\n\n"
+    announcer.announce(msg)
+
+
 send_temperature_event()
+send_weight_event()
 
 app.add_api('api.yaml', arguments={'api_local': 'local_value'})
 app.run(port=8080)

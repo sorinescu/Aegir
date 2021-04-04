@@ -214,7 +214,7 @@ gulp.task('js', () => {
 });
 
 /**
- * Watch Jekyll files and build it to demo directory
+ * Watch Jekyll files and build it to web app directory
  */
 gulp.task('watch-jekyll', (cb) => {
     browserSync.notify('Building Jekyll');
@@ -223,7 +223,7 @@ gulp.task('watch-jekyll', (cb) => {
 });
 
 /**
- * Build Jekyll files do demo directory
+ * Build Jekyll files to web app directory
  */
 gulp.task('build-jekyll', (cb) => {
     var env = Object.create(process.env);
@@ -238,11 +238,11 @@ gulp.task('build-jekyll', (cb) => {
         .on('close', cb);
 });
 
-// gulp.task('build-cleanup', () => {
-//     return gulp
-//         .src(`${webAppDir}/redirects.json`, { read: false, allowEmpty: true })
-//         .pipe(clean());
-// });
+gulp.task('build-cleanup', () => {
+    return gulp
+        .src([`${webAppDir}/redirects.json`, `${distDir}/js/aegir.js`], { read: false, allowEmpty: true })
+        .pipe(clean());
+});
 
 // gulp.task('build-purgecss', (cb) => {
 //     if (argv.preview) {
@@ -341,4 +341,4 @@ gulp.task('clean', gulp.series('clean-dirs', 'clean-jekyll'));
 
 gulp.task('start', gulp.series('clean', 'sass', 'js', 'copy-libs', 'build-jekyll', gulp.parallel('watch-jekyll', 'watch', 'browser-sync')));
 
-gulp.task('build', gulp.series('build-on', 'build-jekyll', 'clean', 'sass', 'css-minify', 'js', 'copy-static', 'copy-libs', 'add-banner', /* 'build-cleanup', 'build-purgecss'*/ ));
+gulp.task('build', gulp.series('build-on', 'clean', 'sass', 'css-minify', 'js', 'build-jekyll', 'copy-static', 'copy-libs', 'add-banner', 'build-cleanup', /*'build-purgecss'*/ ));

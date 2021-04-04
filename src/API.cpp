@@ -7,6 +7,7 @@
 #endif
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
+#include <HX711_ADC.h>
 #include <errno.h>
 
 #include "API.hpp"
@@ -25,17 +26,13 @@ void API::start()
 
     Serial.println("Starting async web server...");
 
-    server.serveStatic("/css", LittleFS, "/css");
-    server.serveStatic("/img", LittleFS, "/img");
-    server.serveStatic("/js", LittleFS, "/js");
-
-    server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        request->send(LittleFS, "/index.html", String(), false, [this](const String &var) -> String {
-            if (var == "TEMPERATURE")
-                return String(_temp->currentTemp());
-            return "UNKNOWN";
-        });
-    });
+    // server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    //     request->send(LittleFS, "/index.html", String(), false, [this](const String &var) -> String {
+    //         if (var == "TEMPERATURE")
+    //             return String(_temp->currentTemp());
+    //         return "UNKNOWN";
+    //     });
+    // });
 
     server.on("/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
         _temp_stream_idx = (uint16_t)-1;
@@ -140,6 +137,10 @@ void API::start()
         request->send(200, "text/plain", "Hello, POST: " + message);
     });
 
+    // The web server will serve gzipped files automatically if there's a file ending in '.gz' for the requested resource.
+    // It will server '/index.html' by default for '/'.
+    server.serveStatic("/", LittleFS, "/web/");
+
     server.onNotFound([](AsyncWebServerRequest *request) {
         request->send(404, "text/plain", "Not found");
     });
@@ -153,4 +154,11 @@ void API::sendCurrentTemp()
     char buf[128];
     sprintf(buf, "{\"ts\":%ld,\"value\":%f}", millis(), _temp->currentTemp());
     events.send(buf, "temperature", millis());
+}
+
+void API::sendCurrentWeight()
+{
+    char buf[128];
+    sprintf(buf, "{\"ts\":%ld,\"value\":%f}", millis(), _load_cell->getData());
+    events.send(buf, "weight", millis());
 }

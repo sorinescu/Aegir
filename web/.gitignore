@@ -24,3 +24,4 @@ node_modules/
 /Gemfile.lock
 /package-lock.json
 /src/pages/playground.html
+/data

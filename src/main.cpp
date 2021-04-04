@@ -6,26 +6,32 @@
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 #include <EasyButton.h>
+#include <HX711_ADC.h>
 #include <WiFiManager.h>
 #include "API.hpp"
 #include "TempMeasure.hpp"
 #include "TempHistory.hpp"
 
 #define BUTTON_PIN 0
-#define BAUDRATE 115200
+#define HX711_DATA_PIN D6 // load cell
+#define HX711_SCK_PIN D5
+#define TEMP_PIN D4 // LoLin board
+// #define TEMP_PIN 0 // Flash pin (WiFi rubber ducky board)
 
-// #define TEMP_PIN D4 // LoLin board
-#define TEMP_PIN 0     // Flash pin (WiFi rubber ducky board)
+#define BAUDRATE 115200
 
 #define TEMP_SAMPLE_CAPACITY 4000
 #define TEMP_SAMPLE_INTERVAL_MILLIS 5000
+
+#define LOAD_CELL_STABILIZE_TIME_MILLIS 2000
 
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 PositiveTempMeasure temp(TEMP_PIN);
+HX711_ADC load_cell(HX711_DATA_PIN, HX711_SCK_PIN);
 TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
-API api(&temp, &temp_history);
+API api(&temp, &temp_history, &load_cell);
 
 static void onPressedOnce()
 {
@@ -79,17 +85,22 @@ void setup()
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   Serial.begin(BAUDRATE);
   Serial.setDebugOutput(true);
-  delay(3000);
-  Serial.println("\n Starting");
 
-  // Initialize the temperature sensor
-  temp.setup();
+  // Initialize the weight measurement. The stabilization time also works for serial.
+  load_cell.begin();
+  load_cell.start(LOAD_CELL_STABILIZE_TIME_MILLIS, true);
+
+  Serial.println("\n Starting");
 
   // Initialize the button.
   button.begin();
   button.onPressedFor(2000, onPressedForDuration);
   button.onPressed(onPressedOnce);
 
+  // Initialize the temperature sensor
+  temp.setup();
+
+  // wm.erase();
   // wm.resetSettings(); // wipe settings
 
   // new (&custom_field) WiFiManagerParameter("customfieldid", "Custom Field Label", "Custom Field Value", customFieldLength,"placeholder=\"Custom Field Placeholder\"");
@@ -136,7 +147,7 @@ void setup()
 
   //automatically connect using saved credentials if they exist
   //If connection fails it starts an access point with the specified name
-  if (wm.autoConnect("AutoConnectAP"))
+  if (wm.autoConnect("AegirConfig"))
   {
     Serial.println("connected...yeey :)");
   }
@@ -194,6 +205,9 @@ void loop()
   // Read temperature continuously
   temp.loop();
 
+  // Read current weight
+  uint8_t has_new_weight = load_cell.update();
+
   // Collect periodic temp samples in a circular buffer
   bool new_temp_sample = temp_history.collect();
 
@@ -204,6 +218,12 @@ void loop()
   // Serial.println();
   // delay(500);
 
-  if (new_temp_sample && api.isStarted())
-    api.sendCurrentTemp();
+  if (api.isStarted())
+  {
+    if (new_temp_sample)
+      api.sendCurrentTemp();
+
+    if (has_new_weight)
+      api.sendCurrentTemp();
+  }
 }

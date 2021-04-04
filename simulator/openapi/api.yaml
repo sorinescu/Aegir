@@ -128,6 +128,17 @@ paths:
               schema:
                 type: dict
 
+  /weight:
+    get:
+      operationId: api.weight_get
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/plain:
+              schema:
+                type: number
+
   /push/subscription:
     put:
       operationId: api.push_add_subscription
