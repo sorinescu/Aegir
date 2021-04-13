@@ -1,0 +1,92 @@
+<div class="card">
+	<div class="card-body">
+		<div class="d-flex align-items-center">
+			<div class="subheader">Temperature</div>
+		</div>
+		<div class="d-flex align-items-baseline">
+			<div class="h1 mb-0 me-2 temperature-value">N/A</div>
+		</div>
+	</div>
+	<div id="chart-temperature" class="chart-sm"></div>
+</div>
+
+{% capture script %}
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		let chart = new ApexCharts(document.querySelector('#chart-temperature'), {
+			chart: {
+				type: "line",
+				fontFamily: 'inherit',
+				height: 240,
+				parentHeightOffset: 0,
+				toolbar: {
+					show: false,
+				},
+				animations: {
+					enabled: false
+				},
+			},
+			fill: {
+				opacity: 1,
+			},
+			stroke: {
+				width: 2,
+				lineCap: "round",
+				curve: "straight",
+			},
+			series: [{
+				name: "Temperature",
+				data: []
+			}],
+			grid: {
+				padding: {
+					top: -20,
+					right: 0,
+					left: -4,
+					bottom: -4
+				},
+				strokeDashArray: 4,
+			},
+			tooltip: {
+				enabled: true,
+				x: {
+					format: "HH:mm:ss"
+				}
+			},
+			xaxis: {
+				labels: {
+					format: 'HH:mm'
+				},
+				type: 'datetime',
+			},
+			yaxis: {
+				min: 0,
+				max: 102
+			}
+		});
+
+		chart.render();
+
+		window.mobxAutorun(() => {
+			console.log("Temp changed");
+			const temp = window.deviceState.temperature;
+			document.querySelector('.temperature-value').innerHTML = isNaN(temp) ? temp : (temp.toFixed(2) + '°C');
+		});
+
+		window.mobxAutorun(() => {
+			console.log("Temp chart changed");
+			chart.updateSeries([{
+				data: window.deviceState.temperatureHistory15Min
+			}]);
+		});
+	});
+</script>
+{% endcapture %}
+
+{% if include.show-scripts %}
+{{ script }}
+{% else %}
+{% capture_global scripts %}
+{{ script }}
+{% endcapture_global %}
+{% endif %}

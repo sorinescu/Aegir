@@ -13,7 +13,7 @@
     "countup": "countup.js/dist/countUp.min.js",
     "masonry": "https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js",
     "choices": "choices.js/public/assets/scripts/choices.min.js",
-    "beedle": "beedle/src/beedle.js",
+    "mobx": "mobx/dist/mobx.esm.production.min.js",
     "store2": "store2/dist/store2.min.js"
   },
   "css": {

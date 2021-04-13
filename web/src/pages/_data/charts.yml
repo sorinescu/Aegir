@@ -1,0 +1,11 @@
+temperature:
+  type: line
+  datetime: true
+  sparkline: true
+  show-markers: true
+  stroke-width: [2, 1]
+  stroke-dash: [0, 3]
+  series:
+    - name: Temperature
+      color: blue
+      data: [1]
