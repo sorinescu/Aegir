@@ -7,7 +7,7 @@
 #endif
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
-#include <HX711_ADC.h>
+#include <HX711.h>
 #include <errno.h>
 
 #include "API.hpp"
@@ -50,8 +50,10 @@ void API::start()
                 request->send(400, "text/plain", "Invalid 'minutes' parameter");
                 return;
             }
-
-            start_time = millis() - minutes * 60000UL;
+            
+            unsigned long millis_ago = minutes * 60000UL;
+            if (millis() >= millis_ago)
+                start_time = millis() - millis_ago;
         }
 
         AsyncWebServerResponse *response = request->beginChunkedResponse("application/json", [this, start_time](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
@@ -64,7 +66,7 @@ void API::start()
             if (_temp_stream_idx == uint16_t(-1))
             {
                 _temp_stream_idx = 0;
-                return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"values\":[", millis());
+                return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"start\":%ld,\"values\":[", millis(), start_time);
             }
             if (_temp_stream_idx > _temp_history->size())
             {
@@ -101,6 +103,63 @@ void API::start()
         request->send(200, "text/plain", String(_temp->currentTemp()));
     });
 
+    server.on("/weight/raw", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_load_cell->get_value(5)));
+    });
+
+    server.on("/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_load_cell->get_scale()));
+    });
+
+    server.on("/weight", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_load_cell->get_units(5)));
+    });
+
+    server.on("/weight/scale", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!request->hasParam("value", true)) {
+            request->send(400, "text/plain", "Missing 'value' parameter");
+            return;
+        }
+
+        char *endptr;
+        const char *value_str = request->arg("value").c_str();
+        errno = 0;
+        float scale = strtof(value_str, &endptr);
+        if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
+        {
+            request->send(400, "text/plain", "Invalid 'value' parameter");
+            return;
+        }
+
+        _load_cell->set_scale(scale);
+
+        request->send(200, "text/plain", "OK");
+    });
+
+    server.on("/weight", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!request->hasParam("value", true)) {
+            request->send(400, "text/plain", "Missing 'value' parameter");
+            return;
+        }
+
+        char *endptr;
+        const char *value_str = request->arg("value").c_str();
+        errno = 0;
+        float weight = strtof(value_str, &endptr);
+        if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
+        {
+            request->send(400, "text/plain", "Invalid 'value' parameter");
+            return;
+        }
+
+        if (weight == 0)
+            _load_cell->tare(5);
+        else 
+            _load_cell->set_offset(weight);
+
+        request->send(200, "text/plain", "OK");
+    });
+
     events.onConnect([](AsyncEventSourceClient *client) {
         if (client->lastId())
         {
@@ -108,34 +167,6 @@ void API::start()
         }
     });
     server.addHandler(&events);
-
-    // Send a GET request to <IP>/get?message=<message>
-    server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String message;
-        if (request->hasParam(PARAM_MESSAGE))
-        {
-            message = request->getParam(PARAM_MESSAGE)->value();
-        }
-        else
-        {
-            message = "No message sent";
-        }
-        request->send(200, "text/plain", "Hello, GET: " + message);
-    });
-
-    // Send a POST request to <IP>/post with a form field message set to <message>
-    server.on("/post", HTTP_POST, [](AsyncWebServerRequest *request) {
-        String message;
-        if (request->hasParam(PARAM_MESSAGE, true))
-        {
-            message = request->getParam(PARAM_MESSAGE, true)->value();
-        }
-        else
-        {
-            message = "No message sent";
-        }
-        request->send(200, "text/plain", "Hello, POST: " + message);
-    });
 
     // The web server will serve gzipped files automatically if there's a file ending in '.gz' for the requested resource.
     // It will server '/index.html' by default for '/'.
@@ -159,6 +190,6 @@ void API::sendCurrentTemp()
 void API::sendCurrentWeight()
 {
     char buf[128];
-    sprintf(buf, "{\"ts\":%ld,\"value\":%f}", millis(), _load_cell->getData());
+    sprintf(buf, "{\"ts\":%ld,\"value\":%f}", millis(), _load_cell->get_units(5));
     events.send(buf, "weight", millis());
 }

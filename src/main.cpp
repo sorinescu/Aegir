@@ -6,17 +6,17 @@
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 #include <EasyButton.h>
-#include <HX711_ADC.h>
+#include <HX711.h>
 #include <WiFiManager.h>
 #include "API.hpp"
 #include "TempMeasure.hpp"
 #include "TempHistory.hpp"
 
-#define BUTTON_PIN 0
+#define BUTTON_PIN 0      // Flash button on Lolin
+#define HX711_SCK_PIN D5  // load cell
 #define HX711_DATA_PIN D6 // load cell
-#define HX711_SCK_PIN D5
-#define TEMP_PIN D4 // LoLin board
-// #define TEMP_PIN 0 // Flash pin (WiFi rubber ducky board)
+#define TEMP_PIN D4       // LoLin board
+// #define TEMP_PIN 0     // Flash pin (WiFi rubber ducky board)
 
 #define BAUDRATE 115200
 
@@ -29,7 +29,7 @@ WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 PositiveTempMeasure temp(TEMP_PIN);
-HX711_ADC load_cell(HX711_DATA_PIN, HX711_SCK_PIN);
+HX711 load_cell;
 TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
 API api(&temp, &temp_history, &load_cell);
 
@@ -63,32 +63,12 @@ static void onPressedForDuration()
   ESP.restart();
 }
 
-static String getParam(String name)
-{
-  //read parameter from server, for customhmtl input
-  String value;
-  if (wm.server->hasArg(name))
-  {
-    value = wm.server->arg(name);
-  }
-  return value;
-}
-
-static void saveParamCallback()
-{
-  Serial.println("[CALLBACK] saveParamCallback fired");
-  Serial.println("PARAM customfieldid = " + getParam("customfieldid"));
-}
-
 void setup()
 {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   Serial.begin(BAUDRATE);
   Serial.setDebugOutput(true);
-
-  // Initialize the weight measurement. The stabilization time also works for serial.
-  load_cell.begin();
-  load_cell.start(LOAD_CELL_STABILIZE_TIME_MILLIS, true);
+  delay(2000);
 
   Serial.println("\n Starting");
 
@@ -97,23 +77,12 @@ void setup()
   button.onPressedFor(2000, onPressedForDuration);
   button.onPressed(onPressedOnce);
 
+  // Start weight measurement
+  load_cell.begin(HX711_DATA_PIN, HX711_SCK_PIN);
+
   // Initialize the temperature sensor
   temp.setup();
 
-  // wm.erase();
-  // wm.resetSettings(); // wipe settings
-
-  // new (&custom_field) WiFiManagerParameter("customfieldid", "Custom Field Label", "Custom Field Value", customFieldLength,"placeholder=\"Custom Field Placeholder\"");
-
-  // test custom html input type(checkbox)
-  // new (&custom_field) WiFiManagerParameter("customfieldid", "Custom Field Label", "Custom Field Value", customFieldLength,"placeholder=\"Custom Field Placeholder\" type=\"checkbox\""); // custom html type
-
-  // test custom html(radio)
-  const char *custom_radio_str = "<br/><label for='customfieldid'>Custom Field Label</label><input type='radio' name='customfieldid' value='1' checked> One<br><input type='radio' name='customfieldid' value='2'> Two<br><input type='radio' name='customfieldid' value='3'> Three";
-  new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
-
-  wm.addParameter(&custom_field);
-  wm.setSaveParamsCallback(saveParamCallback);
   wm.setConfigPortalBlocking(false);
 
   // custom menu via array or vector
@@ -125,7 +94,7 @@ void setup()
   wm.setMenu(menu);
 
   // set dark theme
-  wm.setClass("invert");
+  // wm.setClass("invert");
 
   //set static ip
   // wm.setSTAStaticIPConfig(IPAddress(10,0,1,99), IPAddress(10,0,1,1), IPAddress(255,255,255,0)); // set static ip,gw,sn
@@ -186,6 +155,8 @@ void setup()
   ArduinoOTA.begin();
 }
 
+static float prev_weight = 0;
+
 void loop()
 {
   ArduinoOTA.handle();
@@ -206,7 +177,13 @@ void loop()
   temp.loop();
 
   // Read current weight
-  uint8_t has_new_weight = load_cell.update();
+  float weight = load_cell.get_units();
+  bool has_new_weight = false;
+  if (abs(weight - prev_weight) > 0.01) {
+    prev_weight = weight;
+    has_new_weight = true;
+    Serial.printf("New weight: %f\n", weight);
+  }
 
   // Collect periodic temp samples in a circular buffer
   bool new_temp_sample = temp_history.collect();
@@ -224,6 +201,6 @@ void loop()
       api.sendCurrentTemp();
 
     if (has_new_weight)
-      api.sendCurrentTemp();
+      api.sendCurrentWeight();
   }
 }

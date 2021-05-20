@@ -1,0 +1,32 @@
+{
+    "folders": [
+        {
+            "name": "Aegir",
+            "path": "."
+        },
+        {
+            "path": "../../../../src/test/tabler"
+        }
+    ],
+    "settings": {
+        "files.associations": {
+            "bitset": "cpp",
+            "cstdlib": "cpp",
+            "regex": "cpp",
+            "array": "cpp",
+            "deque": "cpp",
+            "list": "cpp",
+            "string": "cpp",
+            "unordered_map": "cpp",
+            "vector": "cpp",
+            "initializer_list": "cpp",
+            "functional": "cpp",
+            "*.tcc": "cpp",
+            "unordered_set": "cpp",
+            "memory": "cpp",
+            "random": "cpp",
+            "string_view": "cpp",
+            "ranges": "cpp"
+        }
+    }
+}
