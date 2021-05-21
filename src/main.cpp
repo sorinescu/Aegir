@@ -30,7 +30,7 @@ WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 PositiveTempMeasure temp(TEMP_PIN);
 HX711 load_cell;
-TempHistory temp_history(&temp, 12, TEMP_SAMPLE_CAPACITY, TEMP_SAMPLE_INTERVAL_MILLIS);
+TempHistory temp_history(&temp, TEMP_SAMPLE_INTERVAL_MILLIS);
 API api(&temp, &temp_history, &load_cell);
 
 static void onPressedOnce()
@@ -153,6 +153,8 @@ void setup()
       Serial.println("End Failed");
   });
   ArduinoOTA.begin();
+
+  temp_history.begin("temp-log.bin");
 }
 
 static float prev_weight = 0;

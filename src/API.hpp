@@ -11,7 +11,7 @@ class API
     TempHistory *_temp_history;
     HX711 *_load_cell;
     bool _is_started;
-    uint16_t _temp_stream_idx;
+    size_t _temp_stream_idx;
 
 public:
     API(PositiveTempMeasure *temp, TempHistory *temp_history, HX711 *load_cell) : _temp(temp), _temp_history(temp_history), _load_cell(load_cell), _is_started(false) {}

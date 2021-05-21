@@ -35,7 +35,7 @@ void API::start()
     // });
 
     server.on("/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        _temp_stream_idx = (uint16_t)-1;
+        _temp_stream_idx = (size_t)-1;
 
         unsigned long start_time = 0;
         if (request->hasArg("minutes"))
@@ -63,7 +63,7 @@ void API::start()
 
             // Serial.printf("tempIdx=%hu size=%hu maxLen=%u index=%u\n", _temp_stream_idx, _temp_history->size(), maxLen, index);
 
-            if (_temp_stream_idx == uint16_t(-1))
+            if (_temp_stream_idx == size_t(-1))
             {
                 _temp_stream_idx = 0;
                 return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"start\":%ld,\"values\":[", millis(), start_time);

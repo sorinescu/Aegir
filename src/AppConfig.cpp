@@ -5,7 +5,7 @@
 #define APP_CONFIG_SIZE 512 // must be multiple of 4
 #define APP_CONFIG_CURR_VER 1
 
-AppConfig::AppConfig(): _autocommit(true) {
+AppConfig::AppConfig() {
     EEPROM.begin(APP_CONFIG_SIZE);
 
     setDefaults();

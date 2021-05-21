@@ -111,7 +111,7 @@ void PositiveTempMeasure::loop()
 
     // Only measure positive temperatures to get rid of sign bit (i.e. 11 bits instead of 12)
     if (value > 0) {
-        _value = value;
+        _value.add(value);
     }
 
     // Serial.print("  Temperature = ");
@@ -124,14 +124,15 @@ void PositiveTempMeasure::loop()
 
 uint16_t PositiveTempMeasure::currentRawTemp(byte precision_bits)
 {
+    uint16_t value = _value.avg();
     if (precision_bits >= 11)
-        return _value;
-    return _value >> (11 - precision_bits);
+        return value;
+    return value >> (11 - precision_bits);
 }
 
 float PositiveTempMeasure::currentTemp()
 {
-    return (float)_value / 16.0; 
+    return (float)_value.avg() / 16.0; 
 }
 
 float PositiveTempMeasure::convertRawTemp(uint16_t raw, byte precision_bits)

@@ -1,54 +1,37 @@
 #include "TempHistory.hpp"
 #include "TempMeasure.hpp"
 
-#define HIST_OFFSET(offset) ((uint16_t(offset) + _curr_idx) % _history.capacity())
-
 bool TempHistory::collect()
 {
     unsigned long t = millis();
 
-    if (_size == 0)
+    if (size() == 0)
     {
-        _curr_idx = 0;
-        _curr_millis = t;
-        _size = 1;
-        return false;
+        _logger.append(_temp->currentRawTemp());
+        return true;
     }
 
-    uint16_t offset = (t - _curr_millis) / _sampling_interval_millis;
-    // Serial.printf("before t=%ld curr_millis=%ld curr_idx=%hu offset=%hu curr_size=%hu\n", t, _curr_millis, _curr_idx, offset, _size);
+    uint16_t sample_count = (t - _curr_millis) / _sampling_interval_millis;
+    if (sample_count == 0)
+        return false; // no new value recorded
 
-    // Zero out missing intermediate values
-    for (uint16_t i = 0; i + 1 < offset; i++)
-        _history.set(HIST_OFFSET(i), 0);
+    uint16_t temp = _temp->currentRawTemp();
+    for (uint16_t i = 0; i < sample_count; i++)
+        _logger.append(temp); // assume the missing values were the same as now
 
-    _curr_idx = HIST_OFFSET(offset);
-    _curr_millis += _sampling_interval_millis * offset;
+    _curr_millis += sample_count * _sampling_interval_millis;
 
-    _history.set(_curr_idx, _temp->currentRawTemp(_precision));
-
-    _size += offset;
-    if (_size > _history.capacity())
-        _size = _history.capacity();
-
-    // Serial.printf("after curr_idx=%hu curr_size=%hu capacity=%hu\n", _curr_idx, _size, _history.capacity());
-    return offset != 0;     // a new sample was collected
+    return true; // recorded new value(s)
 }
 
-float TempHistory::at(uint16_t idx)
+float TempHistory::at(size_t idx)
 {
-    if (idx >= _size)
-        return 0;
-
-    uint16_t offset = (idx + _curr_idx + 1) % _size;
-    // Serial.printf("idx=%hu offset=%hu\n", idx, offset);
-    return _temp->convertRawTemp(_history.get(offset), _precision);
+    return _temp->convertRawTemp(_logger.at(idx));
 }
 
-unsigned long TempHistory::timeMillisAt(uint16_t idx)
+unsigned long TempHistory::timeMillisAt(size_t idx)
 {
-    if (idx >= _size)
+    if (idx >= size())
         return 0;
-
-    return _curr_millis - (_size - 1 - idx) * _sampling_interval_millis;
+    return idx * _sampling_interval_millis;
 }
