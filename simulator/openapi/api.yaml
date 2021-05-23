@@ -20,17 +20,6 @@ paths:
               schema:
                 type: string
 
-  # /{filename}.html:
-  #   get:
-  #     operationId: api.get_html
-  #     responses:
-  #       200:
-  #         description: Successfully loaded html page.
-  #         content:
-  #           text/html:
-  #             schema:
-  #               type: string
-
   /service-worker.js:
     get:
       operationId: api.get_service_worker_js
@@ -56,11 +45,11 @@ paths:
   /img/{filename}:
     get:
       parameters:
-      - name: filename
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
       operationId: api.get_img_file
       responses:
         200:
@@ -73,11 +62,11 @@ paths:
   /js/{filename}:
     get:
       parameters:
-      - name: filename
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
       operationId: api.get_js_file
       responses:
         200:
@@ -87,7 +76,7 @@ paths:
               schema:
                 type: string
 
-  /time:
+  /api/time:
     get:
       operationId: api.device_time_get
       responses:
@@ -98,7 +87,7 @@ paths:
               schema:
                 type: number
 
-  /temperature:
+  /api/temperature:
     get:
       operationId: api.temperature_get
       responses:
@@ -109,17 +98,17 @@ paths:
               schema:
                 type: number
 
-  /temperature/history:
+  /api/temperature/history:
     get:
       operationId: api.temperature_history_get
       parameters:
-      - name: minutes
-        in: query
-        description: Return only the last N minutes of data
-        required: false
-        style: simple
-        schema:
-          type: integer
+        - name: minutes
+          in: query
+          description: Return only the last N minutes of data
+          required: false
+          style: simple
+          schema:
+            type: integer
       responses:
         200:
           description: successful operation
@@ -128,7 +117,25 @@ paths:
               schema:
                 type: dict
 
-  /weight:
+  /api/weight/calibrate:
+    post:
+      operationId: api.weight_calibrate
+      requestBody:
+        description: Calibrate scale with a known weight
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: number
+              required:
+                - value
+      responses:
+        200:
+          description: successful operation
+
+  /api/weight:
     get:
       operationId: api.weight_get
       responses:
@@ -138,6 +145,39 @@ paths:
             text/plain:
               schema:
                 type: number
+    post:
+      operationId: api.weight_set
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: number
+                required:
+                  - value
+
+  /api/weight/history:
+    get:
+      operationId: api.weight_history_get
+      parameters:
+        - name: minutes
+          in: query
+          description: Return only the last N minutes of data
+          required: false
+          style: simple
+          schema:
+            type: integer
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: dict
 
   /push/subscription:
     put:

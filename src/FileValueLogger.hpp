@@ -67,7 +67,16 @@ public:
         }
 
         if (_write_ptr % FILE_VALUE_LOGGER_BLOCK_SIZE == 0)
+        {
+            Serial.printf("Flushing %d bytes to LittleFS; file size %d bytes\n", FILE_VALUE_LOGGER_BLOCK_SIZE, _write_ptr);
+
             _file.flush();
+            
+            FSInfo fsinfo;
+            LittleFS.info(fsinfo);
+            Serial.println("LittleFS details:");
+            Serial.printf("totalBytes: %d\nusedBytes: %d\nblockSize: %d\n", fsinfo.totalBytes, fsinfo.usedBytes, fsinfo.blockSize);
+        }
     }
 };
 

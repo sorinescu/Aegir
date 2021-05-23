@@ -1,6 +1,7 @@
-import { apiUrl } from "./config";
 import { makeAutoObservable, autorun, runInAction } from "mobx";
 import localStore from "store2";
+import apiClient from "./api-client";
+import { apiUrl } from "./config";
 
 function computeLocalTimeFromDevice(localTime, deviceCrtTime, deviceTimePoint) {
 	let timeDelta = localTime.getTime() - deviceCrtTime;
@@ -9,55 +10,68 @@ function computeLocalTimeFromDevice(localTime, deviceCrtTime, deviceTimePoint) {
 
 export class DeviceState {
 	temperature = "N/A";
-	temperatureHistory15Min = [];
+	temperatureHistory = [];
 	weight = "N/A";
+	weightHistory = [];
 	recipe = localStore.get("recipe");
 
 	constructor() {
 		makeAutoObservable(this);
 	}
 
-	fetchTemperatureHistory15Min() {
-		fetch(apiUrl("/temperature/history?minutes=15"))
-			.then(response => response.json())
-			.then(data =>
-				runInAction(() => {
-					let localTime = new Date();
-					deviceState.temperatureHistory15Min = data.values.map(item => [
-						computeLocalTimeFromDevice(localTime, data.ts, item.ts),
-						item.value,
-					]);
-				})
-			);
+	fetchTemperatureHistory(minutes) {
+		apiClient.fetchTemperatureHistory(minutes).then((data) =>
+			runInAction(() => {
+				let localTime = new Date();
+				deviceState.temperatureHistory = data.values.map((item) => [
+					computeLocalTimeFromDevice(localTime, data.ts, item.ts),
+					item.value,
+				]);
+			})
+		);
 	}
 
 	fetchTemperature() {
-		fetch(apiUrl("/temperature"))
-			.then(response => response.text())
-			.then(data =>
-				runInAction(() => {
-					deviceState.temperature = data.value;
-				})
-			);
+		apiClient.fetchTemperature().then((data) =>
+			runInAction(() => {
+				deviceState.temperature = data.value;
+			})
+		);
 	}
 
-    fetchWeight() {
-		fetch(apiUrl("/weight"))
-			.then(response => response.text())
-			.then(data =>
-				runInAction(() => {
-					deviceState.weight = data.value;
-				})
-			);
+	fetchWeightHistory(minutes) {
+		apiClient.fetchWeightHistory(minutes).then((data) =>
+			runInAction(() => {
+				let localTime = new Date();
+				deviceState.weightHistory = data.values.map((item) => [
+					computeLocalTimeFromDevice(localTime, data.ts, item.ts),
+					item.value,
+				]);
+			})
+		);
+	}
+
+	fetchWeight() {
+		apiClient.fetchWeight().then((data) =>
+			runInAction(() => {
+				deviceState.weight = data.value;
+			})
+		);
 	}
 }
 const deviceState = new DeviceState();
 
 (function () {
 	// Initial fetch and load every 10s
-	deviceState.fetchTemperatureHistory15Min();
+	deviceState.fetchTemperatureHistory(15);
 	setInterval(() => {
-		deviceState.fetchTemperatureHistory15Min();
+		deviceState.fetchTemperatureHistory(15);
+	}, 10000);
+
+	// Initial fetch and load every 10s
+	deviceState.fetchWeightHistory(15);
+	setInterval(() => {
+		deviceState.fetchWeightHistory(15);
 	}, 10000);
 
 	if (!!window.EventSource) {
@@ -65,7 +79,7 @@ const deviceState = new DeviceState();
 
 		source.addEventListener(
 			"temperature",
-			e => {
+			(e) => {
 				var data = JSON.parse(e.data);
 				runInAction(() => {
 					deviceState.temperature = data.value;
@@ -100,7 +114,7 @@ const deviceState = new DeviceState();
 
 		source.addEventListener(
 			"weight",
-			e => {
+			(e) => {
 				var data = JSON.parse(e.data);
 				runInAction(() => {
 					deviceState.weight = data.value;
@@ -111,7 +125,7 @@ const deviceState = new DeviceState();
 
 		source.addEventListener(
 			"open",
-			e => {
+			(e) => {
 				// Connection was opened.
 				console.log("Device stream connection opened");
 			},
@@ -120,7 +134,7 @@ const deviceState = new DeviceState();
 
 		source.addEventListener(
 			"error",
-			e => {
+			(e) => {
 				if (e.readyState == EventSource.CLOSED) {
 					console.log("Device stream connection closed");
 				}

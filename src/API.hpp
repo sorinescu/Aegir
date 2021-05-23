@@ -2,19 +2,21 @@
 #define __AEGIR_API_HPP__
 
 class PositiveTempMeasure;
-class TempHistory;
-class HX711;
+class WeightMeasure;
+template <typename V>
+class MeasurementLog;
 
 class API
 {
     PositiveTempMeasure *_temp;
-    TempHistory *_temp_history;
-    HX711 *_load_cell;
+    WeightMeasure *_weight;
+    MeasurementLog<uint16_t> *_temp_history;
+    MeasurementLog<float> *_weight_history;
     bool _is_started;
     size_t _temp_stream_idx;
 
 public:
-    API(PositiveTempMeasure *temp, TempHistory *temp_history, HX711 *load_cell) : _temp(temp), _temp_history(temp_history), _load_cell(load_cell), _is_started(false) {}
+    API(PositiveTempMeasure *temp, WeightMeasure *weight, MeasurementLog<uint16_t> *temp_history, MeasurementLog<float> *weight_history) : _temp(temp), _weight(weight), _temp_history(temp_history), _weight_history(weight_history), _is_started(false) {}
 
     void start();
     bool isStarted() { return _is_started; }

@@ -1,13 +1,11 @@
-//const apiBaseUrl = "http://loc/alhost:8080";
-
-const apiBaseUrl = "";
-
 // Apex.tooltip.x.format = 'HH:mm:ss';
 
 function apiUrl(path) {
-    if (apiBaseUrl !== '')
-        return new URL(path, apiBaseUrl).href;
-    return path;
+    let apiPath = '/api' + path;
+    // Debug support - serve API from Python simulator
+    if (document.location.host.includes('localhost') || document.location.host.startsWith('127.'))
+        return new URL(apiPath, 'http://localhost:8080').href;
+    return apiPath;
 }
 
 export {apiUrl};

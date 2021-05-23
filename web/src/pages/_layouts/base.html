@@ -13,28 +13,6 @@
 
 	<title>{% if title %}{{ title }} - {% endif %}{% if site.title %}{{ site.title }} - {% endif %}{{ site.description }}</title>
 
-	{% if jekyll.environment == 'preview' %}
-		<link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
-		<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-		<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
-
-		<meta name="msapplication-TileColor" content="{{ site.data.colors.blue }}"/>
-		<meta name="theme-color" content="{{ site.data.colors.blue }}"/>
-
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-		<meta name="apple-mobile-web-app-capable" content="yes"/>
-		<meta name="mobile-web-app-capable" content="yes"/>
-		<meta name="HandheldFriendly" content="True"/>
-		<meta name="MobileOptimized" content="320"/>
-
-		<link rel="icon" href="{{ site.base }}/favicon.ico" type="image/x-icon"/>
-		<link rel="shortcut icon" href="{{ site.base }}/favicon.ico" type="image/x-icon"/>
-
-		<meta name="description" content="{{ page.description | default: 'Tabler comes with tons of well-designed components and features. Start your adventure with Tabler and make your dashboard great again. For free!' | escape }}"/>
-
-		{% include layout/og.html %}
-	{% endif %}
-
 	{% include layout/css.html %}
 </head>
 
@@ -44,10 +22,6 @@
 	{{ content }}
 
 	{% include layout/modals-capture.html %}
-
-	{% if jekyll.environment == 'preview' %}
-		{% include layout/sentry.html %}
-	{% endif %}
 
 	{% include layout/js.html %}
 

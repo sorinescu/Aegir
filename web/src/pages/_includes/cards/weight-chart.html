@@ -1,19 +1,19 @@
 <div class="card">
 	<div class="card-body">
 		<div class="d-flex align-items-center">
-			<div class="subheader">Temperature</div>
+			<div class="subheader">Weight</div>
 		</div>
 		<div class="d-flex align-items-baseline">
-			<div class="h1 mb-0 me-2 temperature-value">N/A</div>
+			<div class="h1 mb-0 me-2 weight-value">N/A</div>
 		</div>
 	</div>
-	<div id="chart-temperature" class="chart-sm"></div>
+	<div id="chart-weight" class="chart-sm"></div>
 </div>
 
 {% capture script %}
 <script>
 	document.addEventListener("DOMContentLoaded", function () {
-		let chart = new ApexCharts(document.querySelector('#chart-temperature'), {
+		let chart = new ApexCharts(document.querySelector('#chart-weight'), {
 			chart: {
 				type: "line",
 				fontFamily: 'inherit',
@@ -35,7 +35,7 @@
 				curve: "straight",
 			},
 			series: [{
-				name: "Temperature",
+				name: "Weight",
 				data: []
 			}],
 			grid: {
@@ -61,22 +61,23 @@
 			},
 			yaxis: {
 				min: 0,
-				max: 102
+				forceNiceScale: true,
+				decimalsInFloat: 0
 			}
 		});
 
 		chart.render();
 
 		window.mobxAutorun(() => {
-			console.log("Temp changed");
-			const temp = window.deviceState.temperature;
-			document.querySelector('.temperature-value').innerHTML = isNaN(temp) ? temp : (temp.toFixed(1) + '°C');
+			console.log("Weight changed");
+			const weight = window.deviceState.weight;
+			document.querySelector('.weight-value').innerHTML = isNaN(weight) ? weight : (weight.toFixed() + 'g');
 		});
 
 		window.mobxAutorun(() => {
-			console.log("Temp chart changed");
+			console.log("Weight chart changed");
 			chart.updateSeries([{
-				data: window.deviceState.temperatureHistory
+				data: window.deviceState.weightHistory
 			}]);
 		});
 	});

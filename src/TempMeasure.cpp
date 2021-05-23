@@ -51,21 +51,23 @@ void PositiveTempMeasure::loop()
     if (_type_s == 0xff)
         return; // not a valid device
 
-    byte present = 0;    
+    // byte present = 0;
     byte data[12];
 
-    if (!_conversion_pending) {
+    if (!_conversion_pending)
+    {
         _ds.reset();
         _ds.select(_addr);
         _ds.write(0x44, 1); // start conversion, with parasite power on at the end
         _conversion_pending = true;
     }
 
-    if (_ds.read_bit() == 0)    // conversion in progress
+    if (_ds.read_bit() == 0) // conversion in progress
         return;
     _conversion_pending = false;
 
-    present = _ds.reset();
+    // present = _ds.reset();
+    _ds.reset();
     _ds.select(_addr);
     _ds.write(0xBE); // Read Scratchpad
 
@@ -106,11 +108,12 @@ void PositiveTempMeasure::loop()
             value = value & ~3; // 10 bit res, 187.5 ms
         else if (cfg == 0x40)
             value = value & ~1; // 11 bit res, 375 ms
-                            //// default is 12 bit resolution, 750 ms conversion time
+                                //// default is 12 bit resolution, 750 ms conversion time
     }
 
     // Only measure positive temperatures to get rid of sign bit (i.e. 11 bits instead of 12)
-    if (value > 0) {
+    if (value > 0)
+    {
         _value.add(value);
     }
 
@@ -122,23 +125,23 @@ void PositiveTempMeasure::loop()
     // Serial.println(convertRawTemp(currentRawTemp(10), 10));
 }
 
-uint16_t PositiveTempMeasure::currentRawTemp(byte precision_bits)
+bool PositiveTempMeasure::has_new_value()
 {
-    uint16_t value = _value.avg();
-    if (precision_bits >= 11)
-        return value;
-    return value >> (11 - precision_bits);
+    int temp = measure();
+    if (abs(temp - _prev_value) >> 2)
+    {
+        _prev_value = temp;
+        return true;
+    }
+    return false;
 }
 
-float PositiveTempMeasure::currentTemp()
+uint16_t PositiveTempMeasure::measure()
 {
-    return (float)_value.avg() / 16.0; 
+    return _value.avg();
 }
 
-float PositiveTempMeasure::convertRawTemp(uint16_t raw, byte precision_bits)
+float PositiveTempMeasure::toFloat(uint16_t raw)
 {
-    if (precision_bits < 11)
-        raw = raw << (11 - precision_bits);
-
     return (float)raw / 16.0;
 }

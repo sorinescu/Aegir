@@ -9,8 +9,15 @@ class MovingAverage
     size_t _pos;
 
 public:
-    MovingAverage() : _size(0), _pos(0)
+    MovingAverage()
     {
+        reset();
+    }
+
+    void reset()
+    {
+        _size = 0;
+        _pos = 0;
     }
 
     void add(ValueType sample)
@@ -36,6 +43,6 @@ public:
 template <int SampleCount>
 using Uint16MovingAverage = MovingAverage<uint16_t, uint32_t, SampleCount>;
 template <int SampleCount>
-using FloatMovingAverage = MovingAverage<float, float, SampleCount>;
+using LongMovingAverage = MovingAverage<long, long, SampleCount>;
 
 #endif // __MOVING_AVERAGE_HPP__

@@ -6,11 +6,12 @@
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 #include <EasyButton.h>
-#include <HX711.h>
 #include <WiFiManager.h>
+#include "AppConfig.hpp"
 #include "API.hpp"
 #include "TempMeasure.hpp"
-#include "TempHistory.hpp"
+#include "WeightMeasure.hpp"
+#include "MeasurementLog.hpp"
 
 #define BUTTON_PIN 0      // Flash button on Lolin
 #define HX711_SCK_PIN D5  // load cell
@@ -24,14 +25,16 @@
 #define TEMP_SAMPLE_INTERVAL_MILLIS 5000
 
 #define LOAD_CELL_STABILIZE_TIME_MILLIS 2000
+#define WEIGHT_SAMPLE_INTERVAL_MILLIS 5000
 
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 PositiveTempMeasure temp(TEMP_PIN);
-HX711 load_cell;
-TempHistory temp_history(&temp, TEMP_SAMPLE_INTERVAL_MILLIS);
-API api(&temp, &temp_history, &load_cell);
+MeasurementLog<uint16_t> temp_history(&temp, TEMP_SAMPLE_INTERVAL_MILLIS);
+WeightMeasure weight;
+MeasurementLog<float> weight_history(&weight, WEIGHT_SAMPLE_INTERVAL_MILLIS);
+API api(&temp, &weight, &temp_history, &weight_history);
 
 static void onPressedOnce()
 {
@@ -77,8 +80,11 @@ void setup()
   button.onPressedFor(2000, onPressedForDuration);
   button.onPressed(onPressedOnce);
 
+  app_config.begin();
+
   // Start weight measurement
-  load_cell.begin(HX711_DATA_PIN, HX711_SCK_PIN);
+  weight.setup(HX711_DATA_PIN, HX711_SCK_PIN);
+  weight.set_scale(app_config.weight_scale());
 
   // Initialize the temperature sensor
   temp.setup();
@@ -129,35 +135,34 @@ void setup()
 
   // OTA updates
   ArduinoOTA.setHostname("Aegir");
-  ArduinoOTA.onStart([]() {
-    LittleFS.end();
-    Serial.println("Start OTA");
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd OTA");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR)
-      Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR)
-      Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR)
-      Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR)
-      Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR)
-      Serial.println("End Failed");
-  });
+  ArduinoOTA.onStart([]()
+                     {
+                       LittleFS.end();
+                       Serial.println("Start OTA");
+                     });
+  ArduinoOTA.onEnd([]()
+                   { Serial.println("\nEnd OTA"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                        { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); });
+  ArduinoOTA.onError([](ota_error_t error)
+                     {
+                       Serial.printf("Error[%u]: ", error);
+                       if (error == OTA_AUTH_ERROR)
+                         Serial.println("Auth Failed");
+                       else if (error == OTA_BEGIN_ERROR)
+                         Serial.println("Begin Failed");
+                       else if (error == OTA_CONNECT_ERROR)
+                         Serial.println("Connect Failed");
+                       else if (error == OTA_RECEIVE_ERROR)
+                         Serial.println("Receive Failed");
+                       else if (error == OTA_END_ERROR)
+                         Serial.println("End Failed");
+                     });
   ArduinoOTA.begin();
 
   temp_history.begin("temp-log.bin");
+  weight_history.begin("weight-log.bin");
 }
-
-static float prev_weight = 0;
 
 void loop()
 {
@@ -175,20 +180,13 @@ void loop()
     api.start();
   }
 
-  // Read temperature continuously
+  // Read sensors continuously
   temp.loop();
+  weight.loop();
 
-  // Read current weight
-  float weight = load_cell.get_units();
-  bool has_new_weight = false;
-  if (abs(weight - prev_weight) > 0.01) {
-    prev_weight = weight;
-    has_new_weight = true;
-    Serial.printf("New weight: %f\n", weight);
-  }
-
-  // Collect periodic temp samples in a circular buffer
-  bool new_temp_sample = temp_history.collect();
+  // Collect periodic samples in a circular buffer
+  temp_history.collect();
+  weight_history.collect();
 
   // Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
   // for (uint16_t i=0; i<temp_history.size(); i++) {
@@ -199,10 +197,10 @@ void loop()
 
   if (api.isStarted())
   {
-    if (new_temp_sample)
+    if (temp.has_new_value())
       api.sendCurrentTemp();
 
-    if (has_new_weight)
+    if (weight.has_new_value())
       api.sendCurrentWeight();
   }
 }
