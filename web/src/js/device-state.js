@@ -63,12 +63,14 @@ const deviceState = new DeviceState();
 
 (function () {
 	// Initial fetch and load every 10s
+	deviceState.fetchTemperature();
 	deviceState.fetchTemperatureHistory(15);
 	setInterval(() => {
 		deviceState.fetchTemperatureHistory(15);
 	}, 10000);
 
 	// Initial fetch and load every 10s
+	deviceState.fetchWeight();
 	deviceState.fetchWeightHistory(15);
 	setInterval(() => {
 		deviceState.fetchWeightHistory(15);

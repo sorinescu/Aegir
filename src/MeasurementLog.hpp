@@ -4,8 +4,16 @@
 #include "Measurer.hpp"
 #include "FileValueLogger.hpp"
 
+class MeasurementLogOps {
+public:
+    virtual size_t size() = 0;
+    virtual unsigned long startTimeMillis() const = 0;
+    virtual unsigned long timeMillisAt(size_t idx) = 0;
+    virtual float at(size_t idx) = 0;
+};
+
 template <typename ValueType>
-class MeasurementLog
+class MeasurementLog: public MeasurementLogOps
 {
     Measurer<ValueType> *_measurer;
     FileValueLogger<ValueType> _logger;
@@ -36,7 +44,7 @@ public:
         if (sample_count == 0)
             return false; // no new value recorded
 
-        uint16_t temp = _measurer->measure();
+        ValueType temp = _measurer->measure();
         for (uint16_t i = 0; i < sample_count; i++)
             _logger.append(temp); // assume the missing values were the same as now
 
@@ -45,7 +53,7 @@ public:
         return true; // recorded new value(s)
     }
 
-    size_t size() const
+    size_t size()
     {
         return _logger.size();
     }

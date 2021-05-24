@@ -13,9 +13,10 @@ class WeightMeasure : public Measurer<float>
     long _curr_raw_weight;
     float _offset;
     float _scale;
+    bool _force_new_value;
 
 public:
-    WeightMeasure() : _prev_raw_weight(0), _curr_raw_weight(0), _offset(0), _scale(1) {}
+    WeightMeasure() : _prev_raw_weight(0), _curr_raw_weight(0), _offset(0), _scale(1), _force_new_value(false) {}
 
     void setup(uint8_t sck_pin, uint8_t data_pin);
     void loop();

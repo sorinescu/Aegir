@@ -1,7 +1,7 @@
 import gzip
-import shutil
 import os
 import pathlib
+import shutil
 Import("env")
 
 
@@ -39,7 +39,9 @@ def gzipResourceFiles(src):
 
 
 def buildWebDist():
-    src_web_dir = os.path.join(env.subst("$PROJECT_DIR"), 'web', 'data')
+    web_dir = os.path.join(env.subst("$PROJECT_DIR"), 'web')
+    os.system(f"cd {web_dir} && npm run build")
+    src_web_dir = os.path.join(web_dir, 'data')
     dst_dir = os.path.join(env.subst("$PROJECT_DATA_DIR"), 'web')
 
     print(f"Cleaning {dst_dir}")

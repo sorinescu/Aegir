@@ -26,7 +26,8 @@
             "memory": "cpp",
             "random": "cpp",
             "string_view": "cpp",
-            "ranges": "cpp"
+            "ranges": "cpp",
+            "typeinfo": "cpp"
         }
     }
 }

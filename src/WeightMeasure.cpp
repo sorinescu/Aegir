@@ -21,9 +21,10 @@ void WeightMeasure::loop()
 bool WeightMeasure::has_new_value()
 {
     long raw_weight = _value.avg();
-    if (abs(raw_weight - _prev_raw_weight) > 100)
+    if (_force_new_value || abs(raw_weight - _prev_raw_weight) > 100)
     {
         _prev_raw_weight = raw_weight;
+        _force_new_value = false;
         return true;
     }
     return false;
@@ -44,15 +45,17 @@ void WeightMeasure::set_scale(float scale)
 
 void WeightMeasure::set_weight(float weight)
 {
-    if (weight == 0)
+    if (weight + _offset == 0)
         return;
 
     _scale = _curr_raw_weight / (weight + _offset);
+    _force_new_value = true;
 }
 
 void WeightMeasure::set_weight_offset(float weight_offset)
 {
     _offset = weight_offset;
+    _force_new_value = true;
 }
 
 float WeightMeasure::toFloat(float raw)
