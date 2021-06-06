@@ -70,7 +70,7 @@
 		window.mobxAutorun(() => {
 			console.log("Temp changed");
 			const temp = window.deviceState.temperature;
-			document.querySelector('.temperature-value').innerHTML = isNaN(temp) ? temp : (temp.toFixed(1) + '°C');
+			document.querySelector('.temperature-value').innerHTML = isNaN(temp) ? 'N/A' : (temp.toFixed(1) + '°C');
 		});
 
 		window.mobxAutorun(() => {

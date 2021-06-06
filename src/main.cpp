@@ -14,10 +14,12 @@
 #include "MeasurementLog.hpp"
 
 #define BUTTON_PIN 0      // Flash button on Lolin
-#define HX711_SCK_PIN D5  // load cell
-#define HX711_DATA_PIN D6 // load cell
-#define TEMP_PIN D4       // LoLin board
+#define HX711_SCK_PIN D0  // load cell
+#define HX711_DATA_PIN D5 // load cell
+#define TEMP_PIN D6       // LoLin board
 // #define TEMP_PIN 0     // Flash pin (WiFi rubber ducky board)
+#define RELAY1_PIN D2
+#define RELAY2_PIN D1
 
 #define BAUDRATE 115200
 
@@ -36,25 +38,34 @@ WeightMeasure weight;
 MeasurementLog<float> weight_history(&weight, WEIGHT_SAMPLE_INTERVAL_MILLIS);
 API api(&temp, &weight, &temp_history, &weight_history);
 
+bool relay1_on;
+
 static void onPressedOnce()
 {
   Serial.println("Button pressed");
 
-  // start portal w delay
-  Serial.println("Starting config portal");
-  wm.setConfigPortalTimeout(120);
+  if (relay1_on) {
+    digitalWrite(RELAY1_PIN, HIGH);
+    relay1_on = false;
+  } else {
+    digitalWrite(RELAY1_PIN, LOW);
+    relay1_on = true;
+  }
+  // // start portal w delay
+  // Serial.println("Starting config portal");
+  // wm.setConfigPortalTimeout(120);
 
-  if (!wm.startConfigPortal("OnDemandAP", "password"))
-  {
-    Serial.println("failed to connect or hit timeout");
-    delay(3000);
-    ESP.restart();
-  }
-  else
-  {
-    // if you get here you have connected to the WiFi
-    Serial.println("connected...yeey :)");
-  }
+  // if (!wm.startConfigPortal("OnDemandAP", "password"))
+  // {
+  //   Serial.println("failed to connect or hit timeout");
+  //   delay(3000);
+  //   ESP.restart();
+  // }
+  // else
+  // {
+  //   // if you get here you have connected to the WiFi
+  //   Serial.println("connected...yeey :)");
+  // }
 }
 
 static void onPressedForDuration()
@@ -68,6 +79,10 @@ static void onPressedForDuration()
 
 void setup()
 {
+  digitalWrite(RELAY1_PIN, HIGH);
+  pinMode(RELAY1_PIN, OUTPUT_OPEN_DRAIN);
+  relay1_on = false;
+
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   Serial.begin(BAUDRATE);
   Serial.setDebugOutput(true);

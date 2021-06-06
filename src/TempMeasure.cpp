@@ -58,7 +58,7 @@ void PositiveTempMeasure::loop()
     {
         _ds.reset();
         _ds.select(_addr);
-        _ds.write(0x44, 1); // start conversion, with parasite power on at the end
+        _ds.write(0x44, 0); // start conversion, without parasite power on at the end
         _conversion_pending = true;
     }
 
@@ -114,15 +114,10 @@ void PositiveTempMeasure::loop()
     // Only measure positive temperatures to get rid of sign bit (i.e. 11 bits instead of 12)
     if (value > 0)
     {
+        // Serial.print("  Raw temperature = ");
+        // Serial.println(value);
         _value.add(value);
     }
-
-    // Serial.print("  Temperature = ");
-    // Serial.println(currentTemp());
-    // Serial.print("  Raw temperature = ");
-    // Serial.println(currentRawTemp(10), HEX);
-    // Serial.print("  Temperature from raw = ");
-    // Serial.println(convertRawTemp(currentRawTemp(10), 10));
 }
 
 bool PositiveTempMeasure::has_new_value()

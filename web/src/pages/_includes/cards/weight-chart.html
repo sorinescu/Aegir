@@ -71,7 +71,7 @@
 		window.mobxAutorun(() => {
 			console.log("Weight changed");
 			const weight = window.deviceState.weight;
-			document.querySelector('.weight-value').innerHTML = isNaN(weight) ? weight : (weight.toFixed() + 'g');
+			document.querySelector('.weight-value').innerHTML = isNaN(weight) ? 'N/A' : (weight.toFixed() + 'g');
 		});
 
 		window.mobxAutorun(() => {
