@@ -2,9 +2,10 @@
 #define __MEASUREMENT_LOG_HPP__
 
 #include "Measurer.hpp"
-#include "FileValueLogger.hpp"
+#include "AppendableLogger.hpp"
 
-class MeasurementLogOps {
+class MeasurementLogOps
+{
 public:
     virtual size_t size() = 0;
     virtual unsigned long startTimeMillis() const = 0;
@@ -13,21 +14,16 @@ public:
 };
 
 template <typename ValueType>
-class MeasurementLog: public MeasurementLogOps
+class MeasurementLog : public MeasurementLogOps
 {
     Measurer<ValueType> *_measurer;
-    FileValueLogger<ValueType> _logger;
+    AppendableLogger<ValueType> *_logger;
     unsigned long _curr_millis;
     unsigned long _sampling_interval_millis;
 
 public:
-    MeasurementLog(Measurer<ValueType> *measurer, unsigned long sampling_interval_millis) : _measurer(measurer), _curr_millis(0), _sampling_interval_millis(sampling_interval_millis)
+    MeasurementLog(Measurer<ValueType> *measurer, AppendableLogger<ValueType> *logger, unsigned long sampling_interval_millis) : _measurer(measurer), _logger(logger), _curr_millis(0), _sampling_interval_millis(sampling_interval_millis)
     {
-    }
-
-    void begin(const char *log_path)
-    {
-        _logger.open(log_path);
     }
 
     bool collect()
@@ -36,7 +32,7 @@ public:
 
         if (size() == 0)
         {
-            _logger.append(_measurer->measure());
+            _logger->append(_measurer->measure());
             return true;
         }
 
@@ -46,7 +42,7 @@ public:
 
         ValueType temp = _measurer->measure();
         for (uint16_t i = 0; i < sample_count; i++)
-            _logger.append(temp); // assume the missing values were the same as now
+            _logger->append(temp); // assume the missing values were the same as now
 
         _curr_millis += sample_count * _sampling_interval_millis;
 
@@ -55,7 +51,7 @@ public:
 
     size_t size()
     {
-        return _logger.size();
+        return _logger->size();
     }
 
     unsigned long startTimeMillis() const
@@ -72,7 +68,7 @@ public:
 
     float at(size_t idx)
     {
-        return _measurer->toFloat(_logger.at(idx));
+        return _measurer->toFloat(_logger->at(idx));
     }
 };
 

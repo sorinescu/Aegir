@@ -1,7 +1,3 @@
-/**
- * WiFiManager advanced demo, contains advanced configurartion options
- * Implements TRIGGEN_PIN button press, press for ondemand configportal, hold for 3 seconds for reset settings.
- */
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
@@ -12,6 +8,8 @@
 #include "TempMeasure.hpp"
 #include "WeightMeasure.hpp"
 #include "MeasurementLog.hpp"
+#include "FileValueLogger.hpp"
+#include "CircularBufferLogger.hpp"
 
 #define BUTTON_PIN 0      // Flash button on Lolin
 #define HX711_SCK_PIN D0  // load cell
@@ -23,7 +21,7 @@
 
 #define BAUDRATE 115200
 
-#define TEMP_SAMPLE_CAPACITY 4000
+#define PERIODIC_UPDATE_INTERVAL_MILLIS 1000 // send periodic weight and temp updates to web client
 #define TEMP_SAMPLE_INTERVAL_MILLIS 5000
 
 #define LOAD_CELL_STABILIZE_TIME_MILLIS 2000
@@ -32,11 +30,21 @@
 WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
+
 PositiveTempMeasure temp(TEMP_PIN);
-MeasurementLog<uint16_t> temp_history(&temp, TEMP_SAMPLE_INTERVAL_MILLIS);
+CircularBufferLogger<uint16_t> temp_logger_recent(15 * 60 * 1000 / TEMP_SAMPLE_INTERVAL_MILLIS); // last 15 minutes
+MeasurementLog<uint16_t> temp_history_recent(&temp, &temp_logger_recent, TEMP_SAMPLE_INTERVAL_MILLIS);
+FileValueLogger<uint16_t> temp_logger_full;
+MeasurementLog<uint16_t> temp_history_full(&temp, &temp_logger_full, TEMP_SAMPLE_INTERVAL_MILLIS);
+
 WeightMeasure weight;
-MeasurementLog<float> weight_history(&weight, WEIGHT_SAMPLE_INTERVAL_MILLIS);
-API api(&temp, &weight, &temp_history, &weight_history);
+CircularBufferLogger<float> weight_logger_recent(15 * 60 * 1000 / WEIGHT_SAMPLE_INTERVAL_MILLIS); // last 15 minutes
+MeasurementLog<float> weight_history_recent(&weight, &weight_logger_recent, WEIGHT_SAMPLE_INTERVAL_MILLIS);
+FileValueLogger<float> weight_logger_full;
+MeasurementLog<float> weight_history_full(&weight, &weight_logger_full, WEIGHT_SAMPLE_INTERVAL_MILLIS);
+API api(&temp, &temp_history_recent, &temp_history_full, &weight, &weight_history_recent, &weight_history_full);
+
+long last_periodic_update_time = 0;
 
 bool relay1_on;
 
@@ -44,10 +52,13 @@ static void onPressedOnce()
 {
   Serial.println("Button pressed");
 
-  if (relay1_on) {
+  if (relay1_on)
+  {
     digitalWrite(RELAY1_PIN, HIGH);
     relay1_on = false;
-  } else {
+  }
+  else
+  {
     digitalWrite(RELAY1_PIN, LOW);
     relay1_on = true;
   }
@@ -175,8 +186,8 @@ void setup()
                      });
   ArduinoOTA.begin();
 
-  temp_history.begin("temp-log.bin");
-  weight_history.begin("weight-log.bin");
+  temp_logger_full.open("temp-log.bin");
+  weight_logger_full.open("weight-log.bin");
 }
 
 void loop()
@@ -199,9 +210,11 @@ void loop()
   temp.loop();
   weight.loop();
 
-  // Collect periodic samples in a circular buffer
-  temp_history.collect();
-  weight_history.collect();
+  // Collect periodic samples for last few minutes of history and also log full history
+  temp_history_recent.collect();
+  temp_history_full.collect();
+  weight_history_recent.collect();
+  weight_history_full.collect();
 
   // Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
   // for (uint16_t i=0; i<temp_history.size(); i++) {
@@ -210,12 +223,19 @@ void loop()
   // Serial.println();
   // delay(500);
 
+  bool periodic_update = false;
+  if (millis() - last_periodic_update_time >= PERIODIC_UPDATE_INTERVAL_MILLIS)
+  {
+    last_periodic_update_time = millis();
+    periodic_update = true;
+  }
+
   if (api.isStarted())
   {
-    if (temp.has_new_value())
+    if (periodic_update || temp.has_new_value())
       api.sendCurrentTemp();
 
-    if (weight.has_new_value())
+    if (periodic_update || weight.has_new_value())
       api.sendCurrentWeight();
   }
 }

@@ -27,7 +27,18 @@
             "random": "cpp",
             "string_view": "cpp",
             "ranges": "cpp",
-            "typeinfo": "cpp"
+            "typeinfo": "cpp",
+            "atomic": "cpp",
+            "bit": "cpp",
+            "algorithm": "cpp",
+            "memory_resource": "cpp",
+            "fstream": "cpp",
+            "istream": "cpp",
+            "sstream": "cpp",
+            "stdexcept": "cpp",
+            "tuple": "cpp",
+            "type_traits": "cpp",
+            "utility": "cpp"
         }
     }
 }

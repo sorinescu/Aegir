@@ -3,11 +3,12 @@
 
 #include <FS.h>
 #include <LittleFS.h>
+#include "AppendableLogger.hpp"
 
 #define FILE_VALUE_LOGGER_BLOCK_SIZE 512
 
 template <typename ValueType>
-class FileValueLogger
+class FileValueLogger: public AppendableLogger<ValueType>
 {
     File _file;
     char *_path;
@@ -16,13 +17,16 @@ class FileValueLogger
     void doOpen(const char *mode)
     {
         if (_file)
+        {
+            Serial.printf("Closing '%s'\n", _file.name());
             _file.close();
-
+        }
         _file = LittleFS.open(_path, mode);
         if (!_file)
         {
             Serial.printf("failed to open '%s'\n", _path);
         }
+        Serial.printf("Opened '%s' in mode '%s'\n", _file.name(), mode);
     }
 
     void ensureReadMode()
@@ -65,13 +69,14 @@ public:
         _read_mode = false;
     }
 
-    size_t size()
+    size_t size() override
     {
-        ensureReadMode();
+        // ensureReadMode();
+        Serial.printf("File '%s' has size %d\n", _file.name(), _file.size());
         return _file.size() / sizeof(ValueType);
     }
 
-    ValueType at(size_t idx)
+    ValueType at(size_t idx) override
     {
         ensureReadMode();
 
@@ -81,6 +86,8 @@ public:
 
         if (_file.position() != read_ptr)
             _file.seek(read_ptr);
+
+        Serial.printf("Reading from %d in '%s'\n", _file.position(), _file.name());
 
         ValueType val = 0;
         size_t read = _file.readBytes((char *)&val, sizeof(ValueType));
@@ -92,7 +99,7 @@ public:
         return val;
     }
 
-    void append(ValueType val)
+    void append(ValueType val) override
     {
         ensureAppendMode();
 

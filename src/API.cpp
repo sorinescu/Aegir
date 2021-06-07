@@ -29,13 +29,13 @@ void API::start()
     Serial.println("Starting async web server...");
 
     server.on("/api/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getHistoryMinutes(request, _temp_history, &_temp_stream_idx); });
+              { getHistoryMinutes(request, _temp_history_recent, &_temp_stream_idx); });
 
     server.on("/api/temperature", HTTP_GET, [this](AsyncWebServerRequest *request)
               { request->send(200, "text/plain", String(_temp->measureFloat(), 1)); });
 
     server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        getHistoryMinutes(request, _weight_history, &_weight_stream_idx);
+        getHistoryMinutes(request, _weight_history_recent, &_weight_stream_idx);
     });
 
     server.on("/api/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request)

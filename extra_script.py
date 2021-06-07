@@ -40,6 +40,7 @@ def gzipResourceFiles(src):
 
 def buildWebDist():
     web_dir = os.path.join(env.subst("$PROJECT_DIR"), 'web')
+    print(f"Running 'npm run build' in {web_dir}")
     os.system(f"cd {web_dir} && npm run build")
     src_web_dir = os.path.join(web_dir, 'data')
     dst_dir = os.path.join(env.subst("$PROJECT_DATA_DIR"), 'web')

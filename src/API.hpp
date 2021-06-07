@@ -12,8 +12,10 @@ class API
 {
     PositiveTempMeasure *_temp;
     WeightMeasure *_weight;
-    MeasurementLog<uint16_t> *_temp_history;
-    MeasurementLog<float> *_weight_history;
+    MeasurementLog<uint16_t> *_temp_history_recent;
+    MeasurementLog<uint16_t> *_temp_history_full;
+    MeasurementLog<float> *_weight_history_recent;
+    MeasurementLog<float> *_weight_history_full;
     size_t _temp_stream_idx;
     size_t _weight_stream_idx;
     bool _is_started;
@@ -21,7 +23,12 @@ class API
     void getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *log, size_t *curr_idx);
 
 public:
-    API(PositiveTempMeasure *temp, WeightMeasure *weight, MeasurementLog<uint16_t> *temp_history, MeasurementLog<float> *weight_history) : _temp(temp), _weight(weight), _temp_history(temp_history), _weight_history(weight_history), _is_started(false) {}
+    API(PositiveTempMeasure *temp, MeasurementLog<uint16_t> *temp_history_recent, MeasurementLog<uint16_t> *temp_history_full,
+        WeightMeasure *weight, MeasurementLog<float> *weight_history_recent, MeasurementLog<float> *weight_history_full)
+        : _temp(temp), _weight(weight),
+          _temp_history_recent(temp_history_recent), _temp_history_full(temp_history_full),
+          _weight_history_recent(weight_history_recent), _weight_history_full(weight_history_full),
+          _is_started(false) {}
 
     void start();
     bool isStarted() { return _is_started; }
