@@ -1,0 +1,28 @@
+<div class="card">
+	<div class="card-body">
+		<div class="d-flex align-items-center">
+			<div class="subheader">Temperature</div>
+		</div>
+		<div class="d-flex align-items-baseline">
+			<div class="h1 mb-0 me-2 temperature-value">N/A</div>
+		</div>
+	</div>
+</div>
+
+{% capture script %}
+<script>
+	window.mobxAutorun(() => {
+		console.log("Temp changed");
+		const temp = window.deviceState.temperature;
+		document.querySelector('.temperature-value').innerHTML = isNaN(temp) ? 'N/A' : (temp.toFixed(1) + '°C');
+});
+</script>
+{% endcapture %}
+
+{% if include.show-scripts %}
+{{ script }}
+{% else %}
+{% capture_global scripts %}
+{{ script }}
+{% endcapture_global %}
+{% endif %}
