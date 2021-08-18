@@ -12,12 +12,12 @@
 #include "CircularBufferLogger.hpp"
 
 #define BUTTON_PIN 0      // Flash button on Lolin
-#define HX711_SCK_PIN D0  // load cell
-#define HX711_DATA_PIN D5 // load cell
-#define TEMP_PIN D6       // LoLin board
-// #define TEMP_PIN 0     // Flash pin (WiFi rubber ducky board)
-#define RELAY1_PIN D2
-#define RELAY2_PIN D1
+#define HX711_SCK_PIN 16  // load cell
+#define HX711_DATA_PIN 14 // load cell
+// #define TEMP_PIN D6       // LoLin board
+#define TEMP_PIN 12
+#define RELAY1_PIN 4
+#define RELAY2_PIN 5
 
 #define BAUDRATE 115200
 

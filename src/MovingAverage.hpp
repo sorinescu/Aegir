@@ -33,7 +33,7 @@ public:
         _dirty = true;
     }
 
-    ValueType avg() const
+    ValueType avg()
     {
         if (_size == 0)
             return 0;
@@ -46,7 +46,7 @@ public:
             _curr_value = ValueType(acc / _size);
             _dirty = false;
         }
-        
+
         return _curr_value;
     }
 };
