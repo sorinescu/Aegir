@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <nav-bar></nav-bar>
+    <router-view></router-view>
     <el-row :gutter="20">
       <el-col :span="16">
         <h1>Product List</h1>

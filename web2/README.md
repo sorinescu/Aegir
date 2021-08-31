@@ -14,13 +14,20 @@ Load Element component on demand (smaller build) https://element.eleme.io/#/en-U
 npm install babel-plugin-component -D
 ```
 
-Use FontAwesome icons instead of ElementUI:
+Use FontAwesome icons instead of ElementUI
 * https://stackoverflow.com/questions/54617007/how-to-use-font-awesome-5-icons-in-element-ui
 * https://cli.vuejs.org/guide/css.html#referencing-assets
 
 ```
-npm install --save @fortawesome/fontawesome-free
+# Superseded by the steps below (subset of icons)
+# npm install --save @fortawesome/fontawesome-free
 npm install -D sass-loader@^10.1.1 sass
+```
+
+Use only a subset of the FontAwesome icons https://github.com/omacranger/fontawesome-subset
+```
+npm install --save-dev fontawesome-subset 
+npm install --save-dev @fortawesome/fontawesome-free
 ```
 
 ## Project setup
