@@ -30,6 +30,9 @@ npm install --save-dev fontawesome-subset
 npm install --save-dev @fortawesome/fontawesome-free
 ```
 
+## Further reading
+* https://jamstack.org/what-is-jamstack/ - static site generation from Vue (see Nuxt generator https://jamstack.org/generators/nuxt/)
+
 ## Project setup
 ```
 npm install

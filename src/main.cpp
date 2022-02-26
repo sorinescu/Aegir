@@ -5,11 +5,11 @@
 #include <WiFiManager.h>
 #include "AppConfig.hpp"
 #include "API.hpp"
-#include "TempMeasure.hpp"
-#include "WeightMeasure.hpp"
-#include "MeasurementLog.hpp"
-#include "FileValueLogger.hpp"
-#include "CircularBufferLogger.hpp"
+#include <TempMeasure.hpp>
+#include <WeightMeasure.hpp>
+#include <MeasurementLog.hpp>
+#include <FileValueLogger.hpp>
+#include <CircularBufferLogger.hpp>
 
 #define BUTTON_PIN 0      // Flash button on Lolin
 #define HX711_SCK_PIN 16  // load cell
