@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <QuickPID.h>
+#include <sTune.h>
 
 class PIDRelay
 {
@@ -17,6 +18,7 @@ class PIDRelay
     float _setpoint;
     bool _autotuning;
     QuickPID _pid;
+    sTune* _stune;
 
 public:
     // time_window_millis must be a multiple of 1000 !
@@ -35,7 +37,7 @@ public:
 
     // Enters autotune mode.
     // The `update` function will return true when the autotune is complete.
-    void autotune(float target_value);
+    void autotune(float target_value, float emergency_stop_input, float min_input, float max_input);
 
     // Returns true while there is an autotune in progress.
     bool is_autotuning() const;
