@@ -10,7 +10,7 @@
 class PositiveTempMeasure: public Measurer<uint16_t>
 {
     OneWire _ds;
-    Uint16MovingAverage<5> _value;
+    Uint16MovingAverage<10> _value;
     byte _addr[8];
     byte _type_s;
     bool _conversion_pending;

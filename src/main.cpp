@@ -109,7 +109,7 @@ void setup()
   app_config.begin();
 
   // Start weight measurement
-  weight.setup(HX711_DATA_PIN, HX711_SCK_PIN);
+  weight.setup(HX711_SCK_PIN, HX711_DATA_PIN);
   weight.set_scale(app_config.weight_scale());
 
   // Initialize the temperature sensor

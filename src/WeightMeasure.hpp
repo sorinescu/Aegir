@@ -7,7 +7,7 @@
 
 class WeightMeasure : public Measurer<float>
 {
-    LongMovingAverage<5> _value;
+    LongMovingAverage<10> _value;
     HX711 _load_cell;
     long _prev_raw_weight;
     long _curr_raw_weight;

@@ -1,3 +1,6 @@
+// TODO this is a Vuex example, remove
+
+
 import shop from '../../api/shop'
 
 // initial state

@@ -2,7 +2,15 @@
 
 void WeightMeasure::setup(uint8_t sck_pin, uint8_t data_pin)
 {
-    _load_cell.begin(sck_pin, data_pin);
+    _load_cell.begin(data_pin, sck_pin);
+    
+    // Because the circuit haz a 15k/10k voltage divider on `data_pin`,
+    // we can't use INPUT_PULLUP mode as it is set by `_load_cell.begin()`
+    pinMode(data_pin, INPUT);
+
+    _load_cell.power_down();
+    delay(50);
+    _load_cell.power_up();
 }
 
 void WeightMeasure::loop()
@@ -32,7 +40,10 @@ bool WeightMeasure::has_new_value()
 
 float WeightMeasure::measure()
 {
-    return _value.avg() / _scale - _offset;
+    float value = _value.avg() / _scale - _offset;
+    if (value < 0)
+        return 0;
+    return value;
 }
 
 void WeightMeasure::set_scale(float scale)

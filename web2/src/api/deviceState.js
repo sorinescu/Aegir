@@ -1,7 +1,46 @@
-import { makeAutoObservable, autorun, runInAction } from "mobx";
-import localStore from "store2";
-import apiClient from "./api-client";
-import { apiUrl } from "./config";
+import apiClient from "@/api/apiClient";
+
+// initial state
+// shape: [{ id, quantity }]
+const state = () => ({
+	temperature: "N/A",
+	temperatureHistory: [],
+	weight: "N/A",
+	weightHistory: []
+})
+
+// getters
+const getters = {
+	cartProducts: (state, getters, rootState) => {
+		return state.items.map(({ id, quantity }) => {
+			const product = rootState.products.all.find(product => product.id === id)
+			return {
+				title: product.title,
+				price: product.price,
+				quantity
+			}
+		})
+	},
+
+	cartTotalPrice: (state, getters) => {
+		return getters.cartProducts.reduce((total, product) => {
+			return total + product.price * product.quantity
+		}, 0)
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function computeLocalTimeFromDevice(localTime, deviceCrtTime, deviceTimePoint) {
 	let timeDelta = localTime.getTime() - deviceCrtTime;
@@ -62,56 +101,38 @@ export class DeviceState {
 const deviceState = new DeviceState();
 
 (function () {
-	// Initial fetch and load every 10s
+	// Initial fetch and load every second
 	deviceState.fetchTemperature();
-	deviceState.fetchTemperatureHistory(15);
 	setInterval(() => {
 		deviceState.fetchTemperature();
+	}, 1000);
+	// Initial fetch and load every 10s
+	deviceState.fetchTemperatureHistory(15);
+	setInterval(() => {
 		deviceState.fetchTemperatureHistory(15);
 	}, 10000);
 
-	// Initial fetch and load every 10s
+	// Initial fetch and load every second
 	deviceState.fetchWeight();
-	deviceState.fetchWeightHistory(15);
 	setInterval(() => {
 		deviceState.fetchWeight();
+	}, 1000);
+	// Initial fetch and load every 10s
+	deviceState.fetchWeightHistory(15);
+	setInterval(() => {
 		deviceState.fetchWeightHistory(15);
 	}, 10000);
 
-	if (!!window.EventSource) {
-		var source = new EventSource(apiUrl("/events"));
+	if (window.EventSource) {
+		const source = new EventSource(apiUrl("/events"));
 
 		source.addEventListener(
 			"temperature",
 			(e) => {
-				var data = JSON.parse(e.data);
+				const data = JSON.parse(e.data);
 				runInAction(() => {
 					deviceState.temperature = data.value;
 				});
-
-				// updateTime(data.ts);
-
-				// let time = new Date();
-				// let update = {
-				//     x: [
-				//         [time]
-				//     ],
-				//     y: [
-				//         [data.value]
-				//     ]
-				// };
-
-				// var olderTime = time.setHours(time.getHours() - 1);
-				// var futureTime = time.setHours(time.getHours() + 1);
-
-				// var hourView = {
-				//     xaxis: {
-				//         type: 'date',
-				//         range: [olderTime, futureTime]
-				//     }
-				// };
-				// Plotly.relayout('tempHistory', hourView);
-				// Plotly.extendTraces('tempHistory', update, [0])
 			},
 			false
 		);
@@ -119,7 +140,7 @@ const deviceState = new DeviceState();
 		source.addEventListener(
 			"weight",
 			(e) => {
-				var data = JSON.parse(e.data);
+				const data = JSON.parse(e.data);
 				runInAction(() => {
 					deviceState.weight = data.value;
 				});
@@ -129,7 +150,7 @@ const deviceState = new DeviceState();
 
 		source.addEventListener(
 			"open",
-			(e) => {
+			() => {
 				// Connection was opened.
 				console.log("Device stream connection opened");
 			},
@@ -139,12 +160,14 @@ const deviceState = new DeviceState();
 		source.addEventListener(
 			"error",
 			(e) => {
-				if (e.readyState == EventSource.CLOSED) {
+				if (e.readyState === EventSource.CLOSED) {
 					console.log("Device stream connection closed");
 				}
 			},
 			false
 		);
+
+		source.close();
 	} else {
 		// Load temperature every 10 seconds
 		setInterval(deviceState.fetchTemperature, 10000);

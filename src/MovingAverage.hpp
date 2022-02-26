@@ -1,7 +1,7 @@
 #ifndef __MOVING_AVERAGE_HPP__
 #define __MOVING_AVERAGE_HPP__
 
-template <typename ValueType, typename AccValueType, int SampleCount>
+template <typename ValueType, typename AccValueType, size_t SampleCount>
 class MovingAverage
 {
     ValueType _samples[SampleCount];
@@ -43,7 +43,27 @@ public:
             AccValueType acc = 0;
             for (size_t i = 0; i < _size; i++)
                 acc += _samples[i];
+
+            // Reject outliers (more than 5% deviation from average)
+            ValueType avg_sample = ValueType(acc / _size);
+            ValueType max_diff = avg_sample / 20;
+            
+            if (max_diff < 0)
+                max_diff = -max_diff;
+
+            acc = 0;            
+            for (size_t i = 0; i < _size; i++)
+            {
+                ValueType diff = _samples[i] - avg_sample;
+                if (avg_sample > _samples[i])
+                    diff = avg_sample - _samples[i];
+
+                if (diff <= max_diff)
+                    acc += _samples[i];
+            }
+
             _curr_value = ValueType(acc / _size);
+
             _dirty = false;
         }
 

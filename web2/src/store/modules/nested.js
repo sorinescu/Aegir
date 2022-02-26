@@ -1,3 +1,6 @@
+// TODO this is a Vuex example, remove
+
+
 export default {
     namespaced: true,
     state: () => ({
