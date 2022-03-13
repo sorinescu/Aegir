@@ -1,8 +1,7 @@
 #include <Arduino.h>
-#include <EEPROM.h>
+#include <ESP_EEPROM.h>
 #include "AppConfig.hpp"
 
-#define APP_CONFIG_SIZE 512 // must be multiple of 4
 #define APP_CONFIG_CURR_VER 1
 
 // Global instance
@@ -15,7 +14,7 @@ AppConfig::AppConfig()
 
 void AppConfig::begin()
 {
-    EEPROM.begin(APP_CONFIG_SIZE);
+    EEPROM.begin(sizeof(AppConfig::_config));
 
     uint8_t ver = EEPROM.read(0);
     bool read_ok = false;
@@ -51,19 +50,18 @@ bool AppConfig::readV1()
     uint8_t cksum = 0;
     int addr = 1; // version is at 0, already read in constructor
 
-    __read_with_chsum(_weight_scale);
+    __read_with_chsum(_config);
 
     uint8_t actual_cksum = EEPROM.read(addr);
-
     Serial.printf("App config: read %d bytes, cksum=%#x, expected=%#x\n", addr, actual_cksum, cksum);
-    Serial.printf("App config: weight_scale=%f\n", _weight_scale);
     
     return cksum == actual_cksum;
 }
 
 void AppConfig::setDefaults()
 {
-    _weight_scale = 1;
+    memset(&_config, 0, sizeof(_config));
+    _config._weight_scale = 1;
 }
 
 void AppConfig::reset()
@@ -90,11 +88,10 @@ void AppConfig::commit()
         }                                      \
     } while (0);
 
-    __write_with_chsum(_weight_scale);
+    __write_with_chsum(_config);
 
     EEPROM.write(addr, cksum);
     EEPROM.commit();
 
     Serial.printf("App config: wrote %d bytes, cksum=%#x\n", addr, cksum);
-    Serial.printf("App config: weight_scale=%f\n", _weight_scale);
 }
