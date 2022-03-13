@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <CircularBufferLogger.hpp>
 #include <MovingAverage.hpp>
 #include <unity.h>
 
@@ -10,6 +11,29 @@
 // void tearDown(void) {
 // // clean stuff up here
 // }
+
+void test_CircularBufferLogger(void) {
+    CircularBufferLogger<uint16_t> buf(2);
+
+    buf.append(1);
+    TEST_ASSERT_EQUAL(1, buf.at(0));
+    TEST_ASSERT_EQUAL(0, buf.at(1));
+
+    buf.append(2);
+    TEST_ASSERT_EQUAL(1, buf.at(0));
+    TEST_ASSERT_EQUAL(2, buf.at(1));
+    TEST_ASSERT_EQUAL(0, buf.at(2));
+
+    buf.append(3);
+    TEST_ASSERT_EQUAL(2, buf.at(0));
+    TEST_ASSERT_EQUAL(3, buf.at(1));
+    TEST_ASSERT_EQUAL(0, buf.at(2));
+
+    buf.append(4);
+    TEST_ASSERT_EQUAL(3, buf.at(0));
+    TEST_ASSERT_EQUAL(4, buf.at(1));
+    TEST_ASSERT_EQUAL(0, buf.at(2));
+}
 
 void test_Uint16MovingAverage_add(void) {
     Uint16MovingAverage<2> avg;
@@ -71,9 +95,13 @@ void test_Uint16MovingAverage_outliers_high(void) {
 
 int main(int argc, char **argv) {
     UNITY_BEGIN();
+
+    RUN_TEST(test_CircularBufferLogger);
+
     RUN_TEST(test_Uint16MovingAverage_add);
     RUN_TEST(test_Uint16MovingAverage_outliers_low);
     RUN_TEST(test_Uint16MovingAverage_outliers_high);
+    
     UNITY_END();
 
     return 0;
