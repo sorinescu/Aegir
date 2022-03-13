@@ -28,7 +28,7 @@ public:
     void begin();
 
     float weight_scale() { return _config._weight_scale; }
-    void set_weigth_scale(float value) { _config._weight_scale = value; }
+    void set_weight_scale(float value) { _config._weight_scale = value; }
 
     TempControlProfile const *temp_control_profile(size_t idx)
     {

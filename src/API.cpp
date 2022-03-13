@@ -6,6 +6,8 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
+#include <AsyncJson.h>
+#include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <HX711.h>
 #include <errno.h>
@@ -21,7 +23,13 @@ AsyncEventSource events("/api/events");
 
 const char *PARAM_MESSAGE = "message";
 
-void API::start()
+struct JsonVariantWrapper
+{
+    JsonVariant const &json;
+};
+
+void
+API::start()
 {
     if (isStarted())
         return;
@@ -37,9 +45,8 @@ void API::start()
               { request->send(200, "text/plain", String(_temp->measureFloat(), 1)); });
 
     // openapi
-    server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        getHistoryMinutes(request, _weight_history_recent, &_weight_stream_idx);
-    });
+    server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request)
+              { getHistoryMinutes(request, _weight_history_recent, &_weight_stream_idx); });
 
     // openapi
     server.on("/api/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -65,8 +72,7 @@ void API::start()
                   }
 
                   _weight->set_scale(scale);
-                  request->send(200, "text/plain", "OK");
-              });
+                  request->send(200, "text/plain", "OK"); });
 
     // openapi
     server.on("/api/weight/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request)
@@ -89,11 +95,10 @@ void API::start()
 
                   _weight->set_weight(weight);
 
-                  app_config.set_weigth_scale(_weight->scale());
+                  app_config.set_weight_scale(_weight->scale());
                   app_config.commit();
 
-                  request->send(200, "text/plain", "OK");
-              });
+                  request->send(200, "text/plain", "OK"); });
 
     // openapi
     server.on("/api/weight", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -119,16 +124,22 @@ void API::start()
                   }
 
                   _weight->set_weight_offset(weight);
-                  request->send(200, "text/plain", "OK");
-              });
+                  request->send(200, "text/plain", "OK"); });
+
+    AsyncCallbackJsonWebHandler *setAPIConfigHandler = new AsyncCallbackJsonWebHandler("/api/config", [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                                                       { setConfig(request, JsonVariantWrapper{json : json}); });
+    setAPIConfigHandler->setMethod(HTTP_POST);
+    server.addHandler(setAPIConfigHandler);
+
+    server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest *request)
+              { getConfig(request); });
 
     events.onConnect([](AsyncEventSourceClient *client)
                      {
                          if (client->lastId())
                          {
                              Serial.printf("Client reconnected! Last message ID that it gat is: %u\n", client->lastId());
-                         }
-                     });
+                         } });
     server.addHandler(&events);
 
     // The web server will serve gzipped files automatically if there's a file ending in '.gz' for the requested resource.
@@ -204,10 +215,21 @@ void API::getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *l
                                           }
 
                                           (*curr_idx)++;
-                                          return sz;
-                                      });
+                                          return sz; });
 
     request->send(response);
+}
+
+void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json)
+{
+    JsonObject const &jsonObj = json.json.as<JsonObject>();
+
+    request->send(200, "text/plain", "OK");
+}
+
+void API::getConfig(AsyncWebServerRequest *request)
+{
+    request->send(200, "text/plain", "OK");
 }
 
 void API::sendCurrentTemp()

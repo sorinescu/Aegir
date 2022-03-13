@@ -2,7 +2,33 @@ import gzip
 import os
 import pathlib
 import shutil
-Import("env")
+Import("env", "projenv")
+
+# pioPlatform = env.PioPlatform()
+# print("BASE", pioPlatform.get_installed_packages())
+# print("PROJ", projenv.PioPlatform().get_installed_packages())
+# print(env.packages())
+
+# .get_package_dir("framework-arduinoavr")
+
+def applyPatches():
+    print('Applying patches')
+    proj_dir = env.subst("$PROJECT_DIR")
+    patches_dir = os.path.join(proj_dir, 'patches')
+    for item in os.listdir(patches_dir):
+        if not item.endswith('.patch'):
+            continue
+
+        already_patched = os.path.join(patches_dir, f".{item}.applied")
+        if os.path.exists(already_patched):
+            print(f"Skipping '{item}' (already applied, because '{already_patched}' exists)")
+            continue
+        
+        print(f"Patching from '{item}'")
+        patch_file = os.path.join(patches_dir, item)
+        if os.system(f"patch -d {proj_dir} -f -p0 --ignore-whitespace <{patch_file}"):
+            exit(1)
+        os.system(f"touch {already_patched}")
 
 
 def compressFirmware(source, target, env):
@@ -56,6 +82,8 @@ def buildWebDist():
 
 
 env.AddPreAction("upload", compressFirmware)
+
+applyPatches()
 
 # This doesn't work, instead we must perform the 'if' below
 # env.AddPreAction("buildfs", buildWebDist)

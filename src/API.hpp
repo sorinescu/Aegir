@@ -7,6 +7,7 @@ template <typename V>
 class MeasurementLog;
 class MeasurementLogOps;
 class AsyncWebServerRequest;
+struct JsonVariantWrapper;
 
 class API
 {
@@ -21,6 +22,9 @@ class API
     bool _is_started;
 
     void getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *log, size_t *curr_idx);
+
+    void getConfig(AsyncWebServerRequest *request);
+    void setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json);
 
 public:
     API(PositiveTempMeasure *temp, MeasurementLog<uint16_t> *temp_history_recent, MeasurementLog<uint16_t> *temp_history_full,

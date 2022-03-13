@@ -1,6 +1,11 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
+
+// Need to #include these headers here to be able to compile the Firebase lib
 #include <LittleFS.h>
+#include <SPI.h>
+#include <FirebaseFS.h>
+
 #include <EasyButton.h>
 #include <WiFiManager.h>
 #include "AppConfig.hpp"
