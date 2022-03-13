@@ -28,8 +28,7 @@ struct JsonVariantWrapper
     JsonVariant const &json;
 };
 
-void
-API::start()
+void API::start()
 {
     if (isStarted())
         return;
@@ -222,14 +221,158 @@ void API::getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *l
 
 void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json)
 {
-    JsonObject const &jsonObj = json.json.as<JsonObject>();
+    /*
+        Any of the top-level objects can be omitted. Schema:
+        {
+            "temp_control_profiles": [
+                {
+                    "name": <string, max length 47>,
+                    "relay_config": {
+                        "0": {
+                            "kp": <float>,
+                            "kd": <float>,
+                            "ki": <float>,
+                            "ssr": <bool, default false>,
+                            "normally_closed": <bool, default false>,
+                            "cooling": <bool, default false>
+                        }
+                    ]
+                }
+            ],
+            "weight_scale": <float>,
+            "firebase_auth": {
+                "api_key": <string, max length 63>,
+                "user_email": <string, max length 255>,
+                "user_password": <string, max length 63>
+            }
+        }
+    */
+    auto json_obj = json.json.as<JsonObject>();
+
+    auto temp_control_profiles = json_obj["temp_control_profiles"].as<JsonArray>();
+    if (!temp_control_profiles.isNull())
+    {
+        if (temp_control_profiles.size() > MAX_TEMP_CONTROL_PROFILES)
+        {
+            request->send(400, "too many temperature control profiles");
+            return;
+        }
+
+        app_config.set_temp_control_profile_count(temp_control_profiles.size());
+        size_t profile_idx = 0;
+        for (JsonVariant profile_var : temp_control_profiles)
+        {
+            auto profile_obj = profile_var.as<JsonObject>();
+
+            TempControlProfile profile{};
+
+            strncpy(profile.name, profile_obj["name"].as<String>().c_str(), sizeof(profile.name) - 1);
+            profile.name[sizeof(profile.name) - 1] = 0;
+
+            auto relay_config_obj = profile_obj["relay_config"].as<JsonObject>();
+            for (int i = 0; i < MAX_TEMP_CONTROL_PROFILE_RELAYS; ++i)
+            {
+                char relay_key[3];
+                itoa(i, relay_key, 10);
+
+                auto relay_config = &profile.relay_config[i];
+
+                auto relay_obj = relay_config_obj[relay_key].as<JsonObject>();
+                if (relay_obj.isNull())
+                {
+                    relay_config->active = false;
+                    continue;
+                }
+
+                relay_config->active = true;
+                relay_config->kp = relay_obj["kp"].as<float>();
+                relay_config->ki = relay_obj["ki"].as<float>();
+                relay_config->kd = relay_obj["kd"].as<float>();
+                relay_config->ssr = relay_obj["ssr"].as<bool>();
+                relay_config->normally_closed = relay_obj["normally_closed"].as<bool>();
+                relay_config->cooling = relay_obj["cooling"].as<bool>();
+            }
+
+            app_config.set_temp_control_profile(profile_idx++, profile);
+        }
+    }
+
+    auto firebase_auth_obj = json_obj["firebase_auth"].as<JsonObject>();
+    if (!firebase_auth_obj.isNull())
+    {
+        FirebaseAuthConfig firebase_auth{};
+        strncpy(firebase_auth.api_key, firebase_auth_obj["api_key"].as<String>().c_str(), sizeof(firebase_auth.api_key) - 1);
+        firebase_auth.api_key[sizeof(firebase_auth.api_key) - 1] = 0;
+        strncpy(firebase_auth.user_email, firebase_auth_obj["user_email"].as<String>().c_str(), sizeof(firebase_auth.user_email) - 1);
+        firebase_auth.user_email[sizeof(firebase_auth.user_email) - 1] = 0;
+        strncpy(firebase_auth.user_password, firebase_auth_obj["user_password"].as<String>().c_str(), sizeof(firebase_auth.user_password) - 1);
+        firebase_auth.user_password[sizeof(firebase_auth.user_password) - 1] = 0;
+    }
+
+    auto weight_scale_var = json_obj["weight_scale"];
+    if (!weight_scale_var.isNull())
+    {
+        app_config.set_weight_scale(weight_scale_var.as<float>());
+    }
+
+    app_config.commit();
 
     request->send(200, "text/plain", "OK");
 }
 
 void API::getConfig(AsyncWebServerRequest *request)
 {
-    request->send(200, "text/plain", "OK");
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    DynamicJsonDocument doc(2048);      // should be big enough to fit
+    auto root = doc.to<JsonObject>();
+
+    size_t profile_count = app_config.temp_control_profile_count();
+    if (profile_count)
+    {
+        auto temp_control_profiles = root.createNestedArray("temp_control_profiles");
+
+        for (size_t i = 0; i < profile_count; ++i)
+        {
+            auto profile_obj = temp_control_profiles.createNestedObject();
+            auto profile = app_config.temp_control_profile(i);
+
+            profile_obj["name"] = profile->name;
+
+            auto relay_config_obj = profile_obj.createNestedObject("relay_config");
+            for (int j = 0; j < MAX_TEMP_CONTROL_PROFILE_RELAYS; ++j)
+            {
+                auto relay_config = &profile->relay_config[j];
+                if (!relay_config->active)
+                    continue;
+
+                char relay_key[3];
+                itoa(j, relay_key, 10);
+
+                auto relay_obj = relay_config_obj.createNestedObject(relay_key);
+                relay_obj["kp"] = relay_config->kp;
+                relay_obj["ki"] = relay_config->ki;
+                relay_obj["kd"] = relay_config->kd;
+                relay_obj["ssr"] = relay_config->ssr;
+                relay_obj["normally_closed"] = relay_config->normally_closed;
+                relay_obj["cooling"] = relay_config->cooling;
+            }
+        }
+    }
+
+    root["weight_scale"] = app_config.weight_scale();
+
+    auto firebase_auth = app_config.firebase_auth();
+    if (firebase_auth.api_key[0] != 0) {
+        auto firebase_auth_obj = root.createNestedObject("firebase_auth");
+        firebase_auth_obj["user_email"] = firebase_auth.user_email;
+
+        // TODO this is DEBUG ONLY
+        firebase_auth_obj["api_key"] = firebase_auth.api_key;
+        firebase_auth_obj["user_password"] = firebase_auth.user_password;
+    }
+
+    serializeJson(doc, *response);
+    request->send(response);
 }
 
 void API::sendCurrentTemp()
