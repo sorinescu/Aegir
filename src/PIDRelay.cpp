@@ -44,14 +44,13 @@ void PIDRelay::autotune(float target_value, float emergency_stop_input, float mi
     if (is_autotuning())
         return;
 
-    _stune = new sTune();
+    auto action = _pid.GetDirection() == uint8_t(QuickPID::Action::direct) ? sTune::Action::directIP : sTune::Action::reverseIP;
+    
+    _stune = new sTune(&_input, &_pwm_fill_rate, sTune::TuningMethod::NoOvershoot_PID, action, sTune::SerialMode::printOFF);
+    
     _stune->Configure(max_input - min_input, PWM_RANGE, 0, AUTOTUNE_OUTPUT_STEP, AUTOTUNE_TEST_TIME_SECONDS,
                       0, AUTOTUNE_TEST_SAMPLES);
-    _stune->SetControllerAction(_pid.GetDirection() == uint8_t(QuickPID::Action::direct) ? sTune::Action::directIP : sTune::Action::reverseIP);
-    _stune->SetTuningMethod(sTune::TuningMethod::NoOvershoot_PID);
     _stune->SetEmergencyStop(emergency_stop_input);
-
-    _stune->SetSerialMode(sTune::SerialMode::printOFF);
 }
 
 bool PIDRelay::is_autotuning() const
