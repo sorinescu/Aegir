@@ -179,6 +179,31 @@ paths:
               schema:
                 type: dict
 
+  /api/weight/scale:
+    get:
+      operationId: api.weight_scale_get
+      responses:
+        200:
+          description: successful operation
+          content:
+            text/plain:
+              schema:
+                type: number
+    post:
+      operationId: api.weight_scale_set
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: number
+                required:
+                  - value
+
   /push/subscription:
     put:
       operationId: api.push_add_subscription

@@ -28,19 +28,24 @@ void API::start()
 
     Serial.println("Starting async web server...");
 
+    // openapi
     server.on("/api/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request)
               { getHistoryMinutes(request, _temp_history_recent, &_temp_stream_idx); });
 
+    // openapi
     server.on("/api/temperature", HTTP_GET, [this](AsyncWebServerRequest *request)
               { request->send(200, "text/plain", String(_temp->measureFloat(), 1)); });
 
+    // openapi
     server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
         getHistoryMinutes(request, _weight_history_recent, &_weight_stream_idx);
     });
 
+    // openapi
     server.on("/api/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request)
               { request->send(200, "text/plain", String(_weight->scale())); });
 
+    // openapi
     server.on("/api/weight/scale", HTTP_POST, [this](AsyncWebServerRequest *request)
               {
                   if (!request->hasParam("value", true))
@@ -63,6 +68,7 @@ void API::start()
                   request->send(200, "text/plain", "OK");
               });
 
+    // openapi
     server.on("/api/weight/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request)
               {
                   if (!request->hasParam("value", true))
@@ -89,9 +95,11 @@ void API::start()
                   request->send(200, "text/plain", "OK");
               });
 
+    // openapi
     server.on("/api/weight", HTTP_GET, [this](AsyncWebServerRequest *request)
               { request->send(200, "text/plain", String(_weight->measureFloat(), 1)); });
 
+    // openapi
     server.on("/api/weight", HTTP_POST, [this](AsyncWebServerRequest *request)
               {
                   if (!request->hasParam("value", true))
