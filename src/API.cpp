@@ -6,6 +6,7 @@
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
+#include <NTPClient.h>
 #include <AsyncJson.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
@@ -157,7 +158,7 @@ void API::getHistoryRecent(AsyncWebServerRequest *request, MeasurementLogOps *lo
 {
     *curr_idx = (size_t)-1;
     AsyncWebServerResponse *response =
-        request->beginChunkedResponse("application/json", [curr_idx, log](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
+        request->beginChunkedResponse("application/json", [this, curr_idx, log](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
                                       {
                                           //Write up to "maxLen" bytes into "buffer" and return the amount written.
                                           //index equals the amount of bytes that have been already sent.
@@ -168,7 +169,7 @@ void API::getHistoryRecent(AsyncWebServerRequest *request, MeasurementLogOps *lo
                                           if (*curr_idx == size_t(-1))
                                           {
                                               *curr_idx = 0;
-                                              return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"start\":%ld,\"values\":[", millis(), log->timeMillisAt(0));
+                                              return snprintf((char *)buffer, maxLen, "[");
                                           }
                                           if (*curr_idx > log->size())
                                           {
@@ -178,13 +179,14 @@ void API::getHistoryRecent(AsyncWebServerRequest *request, MeasurementLogOps *lo
                                           size_t sz;
                                           if (*curr_idx < log->size())
                                           {
-                                              sz = snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"value\":%f},", log->timeMillisAt(*curr_idx), log->at(*curr_idx));
+                                              unsigned long t = log->timeMillisAt(*curr_idx);
+                                              sz = snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"value\":%f},", unixTimeAtMillis(t), log->at(*curr_idx));
                                               if (*curr_idx + 1 == log->size())
                                                   sz--; // Remove final ','
                                           }
                                           else
                                           {
-                                              sz = snprintf((char *)buffer, maxLen, "]}");
+                                              sz = snprintf((char *)buffer, maxLen, "]");
                                           }
 
                                           (*curr_idx)++;
@@ -227,7 +229,7 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
     auto temp_control_profiles = json_obj["temp_control_profiles"].as<JsonArray>();
     if (!temp_control_profiles.isNull())
     {
-        Serial.printf("got temp_control_profiles count=%d\n", temp_control_profiles.size());
+        // Serial.printf("got temp_control_profiles count=%d\n", temp_control_profiles.size());
 
         if (temp_control_profiles.size() > MAX_TEMP_CONTROL_PROFILES)
         {
@@ -260,7 +262,7 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
                     continue;
                 }
 
-                Serial.printf("got temp profile=%s relay=%d relay_key=%s\n", profile.name, i, relay_key);
+                // Serial.printf("got temp profile=%s relay=%d relay_key=%s\n", profile.name, i, relay_key);
 
                 relay_config->active = true;
                 relay_config->kp = relay_obj["kp"].as<float>();
@@ -370,4 +372,9 @@ void API::sendCurrentWeight()
     char buf[128];
     sprintf(buf, "{\"ts\":%ld,\"value\":%.1f}", millis(), _weight->measure());
     events.send(buf, "weight", millis());
+}
+
+unsigned long API::unixTimeAtMillis(unsigned long t_millis)
+{
+    return _time_client->getEpochTime() - (millis() - t_millis) / 1000;
 }

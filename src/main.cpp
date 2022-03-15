@@ -48,7 +48,7 @@ MeasurementLog<uint16_t> temp_history_recent(&temp, &temp_logger_recent, TEMP_SA
 WeightMeasure weight;
 CircularBufferLogger<float> weight_logger_recent(15 * 60 * 1000 / WEIGHT_SAMPLE_INTERVAL_MILLIS); // last 15 minutes
 MeasurementLog<float> weight_history_recent(&weight, &weight_logger_recent, WEIGHT_SAMPLE_INTERVAL_MILLIS);
-API api(&temp, &temp_history_recent, &weight, &weight_history_recent);
+API api(&time_client, &temp, &temp_history_recent, &weight, &weight_history_recent);
 
 long last_periodic_update_time = 0;
 

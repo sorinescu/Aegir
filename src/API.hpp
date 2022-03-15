@@ -7,10 +7,12 @@ template <typename V>
 class MeasurementLog;
 class MeasurementLogOps;
 class AsyncWebServerRequest;
+class NTPClient;
 struct JsonVariantWrapper;
 
 class API
 {
+    NTPClient *_time_client;
     PositiveTempMeasure *_temp;
     WeightMeasure *_weight;
     MeasurementLog<uint16_t> *_temp_history_recent;
@@ -24,10 +26,12 @@ class API
     void getConfig(AsyncWebServerRequest *request);
     void setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json);
 
+    unsigned long unixTimeAtMillis(unsigned long t_millis);
+    
 public:
-    API(PositiveTempMeasure *temp, MeasurementLog<uint16_t> *temp_history_recent,
+    API(NTPClient *time_client, PositiveTempMeasure *temp, MeasurementLog<uint16_t> *temp_history_recent,
         WeightMeasure *weight, MeasurementLog<float> *weight_history_recent)
-        : _temp(temp), _weight(weight),
+        : _time_client(time_client), _temp(temp), _weight(weight),
           _temp_history_recent(temp_history_recent),
           _weight_history_recent(weight_history_recent),
           _is_started(false) {}

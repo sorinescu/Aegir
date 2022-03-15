@@ -40,7 +40,10 @@ public:
         if (idx >= _size)
             return 0;
 
-        return _buf[(_capacity + _write_pos - _size + idx) % _capacity];
+        size_t pos = _capacity + _write_pos - _size + idx;
+        if (pos >= _capacity)
+            pos -= _capacity;
+        return _buf[pos];
     }
 };
 
