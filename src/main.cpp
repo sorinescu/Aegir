@@ -8,13 +8,15 @@
 
 #include <EasyButton.h>
 #include <WiFiManager.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
 #include "AppConfig.hpp"
 #include "API.hpp"
-#include <TempMeasure.hpp>
-#include <WeightMeasure.hpp>
-#include <MeasurementLog.hpp>
-#include <FileValueLogger.hpp>
-#include <CircularBufferLogger.hpp>
+#include "TempMeasure.hpp"
+#include "WeightMeasure.hpp"
+#include "MeasurementLog.hpp"
+#include "CircularBufferLogger.hpp"
 
 #define BUTTON_PIN 0      // Flash button on Lolin
 #define HX711_SCK_PIN 16  // load cell
@@ -36,18 +38,17 @@ WiFiManager wm;                    // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 EasyButton button(BUTTON_PIN);
 
+WiFiUDP ntp_udp;
+NTPClient time_client(ntp_udp);
+
 PositiveTempMeasure temp(TEMP_PIN);
 CircularBufferLogger<uint16_t> temp_logger_recent(15 * 60 * 1000 / TEMP_SAMPLE_INTERVAL_MILLIS); // last 15 minutes
 MeasurementLog<uint16_t> temp_history_recent(&temp, &temp_logger_recent, TEMP_SAMPLE_INTERVAL_MILLIS);
-FileValueLogger<uint16_t> temp_logger_full;
-MeasurementLog<uint16_t> temp_history_full(&temp, &temp_logger_full, TEMP_SAMPLE_INTERVAL_MILLIS);
 
 WeightMeasure weight;
 CircularBufferLogger<float> weight_logger_recent(15 * 60 * 1000 / WEIGHT_SAMPLE_INTERVAL_MILLIS); // last 15 minutes
 MeasurementLog<float> weight_history_recent(&weight, &weight_logger_recent, WEIGHT_SAMPLE_INTERVAL_MILLIS);
-FileValueLogger<float> weight_logger_full;
-MeasurementLog<float> weight_history_full(&weight, &weight_logger_full, WEIGHT_SAMPLE_INTERVAL_MILLIS);
-API api(&temp, &temp_history_recent, &temp_history_full, &weight, &weight_history_recent, &weight_history_full);
+API api(&temp, &temp_history_recent, &weight, &weight_history_recent);
 
 long last_periodic_update_time = 0;
 
@@ -133,10 +134,10 @@ void setup()
   // set dark theme
   // wm.setClass("invert");
 
-  //set static ip
-  // wm.setSTAStaticIPConfig(IPAddress(10,0,1,99), IPAddress(10,0,1,1), IPAddress(255,255,255,0)); // set static ip,gw,sn
-  // wm.setShowStaticFields(true); // force show static ip fields
-  // wm.setShowDnsFields(true);    // force show dns field always
+  // set static ip
+  //  wm.setSTAStaticIPConfig(IPAddress(10,0,1,99), IPAddress(10,0,1,1), IPAddress(255,255,255,0)); // set static ip,gw,sn
+  //  wm.setShowStaticFields(true); // force show static ip fields
+  //  wm.setShowDnsFields(true);    // force show dns field always
 
   // wm.setConnectTimeout(20); // how long to try to connect for before continuing
   wm.setConfigPortalTimeout(30); // auto close configportal after n seconds
@@ -151,11 +152,12 @@ void setup()
 
   // wm.setBreakAfterConfig(true);   // always exit configportal even if wifi save fails
 
-  //automatically connect using saved credentials if they exist
-  //If connection fails it starts an access point with the specified name
+  // automatically connect using saved credentials if they exist
+  // If connection fails it starts an access point with the specified name
   if (wm.autoConnect("AegirConfig"))
   {
     Serial.println("connected...yeey :)");
+    time_client.begin();
   }
   else
   {
@@ -169,8 +171,7 @@ void setup()
   ArduinoOTA.onStart([]()
                      {
                        LittleFS.end();
-                       Serial.println("Start OTA");
-                     });
+                       Serial.println("Start OTA"); });
   ArduinoOTA.onEnd([]()
                    { Serial.println("\nEnd OTA"); });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
@@ -187,12 +188,8 @@ void setup()
                        else if (error == OTA_RECEIVE_ERROR)
                          Serial.println("Receive Failed");
                        else if (error == OTA_END_ERROR)
-                         Serial.println("End Failed");
-                     });
+                         Serial.println("End Failed"); });
   ArduinoOTA.begin();
-
-  temp_logger_full.open("temp-log.bin");
-  weight_logger_full.open("weight-log.bin");
 }
 
 void loop()
@@ -205,21 +202,13 @@ void loop()
   // Update WiFi manager state
   wm.process();
 
-  // Start web server
-  if (!api.isStarted() && WiFi.status() == WL_CONNECTED)
-  {
-    api.start();
-  }
-
   // Read sensors continuously
   temp.loop();
   weight.loop();
 
   // Collect periodic samples for last few minutes of history and also log full history
   temp_history_recent.collect();
-  temp_history_full.collect();
   weight_history_recent.collect();
-  weight_history_full.collect();
 
   // Serial.printf("Temp history @ %ld: ", temp_history.startTimeMillis());
   // for (uint16_t i=0; i<temp_history.size(); i++) {
@@ -235,12 +224,21 @@ void loop()
     periodic_update = true;
   }
 
-  if (api.isStarted())
+  if (WiFi.status() == WL_CONNECTED)
   {
-    if (periodic_update || temp.has_new_value())
-      api.sendCurrentTemp();
+    time_client.update();
 
-    if (periodic_update || weight.has_new_value())
-      api.sendCurrentWeight();
+    // Start web server
+    if (!api.isStarted())
+      api.start();
+    else
+    {
+      // API event stream
+      if (periodic_update || temp.has_new_value())
+        api.sendCurrentTemp();
+
+      if (periodic_update || weight.has_new_value())
+        api.sendCurrentWeight();
+    }
   }
 }

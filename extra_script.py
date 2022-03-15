@@ -2,14 +2,8 @@ import gzip
 import os
 import pathlib
 import shutil
-Import("env", "projenv")
+Import("env")
 
-# pioPlatform = env.PioPlatform()
-# print("BASE", pioPlatform.get_installed_packages())
-# print("PROJ", projenv.PioPlatform().get_installed_packages())
-# print(env.packages())
-
-# .get_package_dir("framework-arduinoavr")
 
 def applyPatches():
     print('Applying patches')

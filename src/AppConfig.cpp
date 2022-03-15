@@ -14,7 +14,8 @@ AppConfig::AppConfig()
 
 void AppConfig::begin()
 {
-    EEPROM.begin(sizeof(AppConfig::_config));
+    // The extra 2 bytes are the version and the checksum
+    EEPROM.begin(sizeof(AppConfig::_config) + 2);
 
     uint8_t ver = EEPROM.read(0);
     bool read_ok = false;

@@ -16,9 +16,8 @@ struct TempRelayConfig
 
 struct TempControlProfile
 {
-    char name[TEMP_CONTROL_PROFILE_NAME_SIZE];
+    char name[TEMP_CONTROL_PROFILE_NAME_SIZE];                     // The profile is only valid if it has a non-empty name
     TempRelayConfig relay_config[MAX_TEMP_CONTROL_PROFILE_RELAYS]; // There are only two physical relays on the board; the one(s) in use by the profile have the "in_use" flag set
-    bool valid;                                                    // True if this profile was configured by the user
 };
 
 struct FirebaseAuthConfig
@@ -38,11 +37,16 @@ public:
     float weight_scale() { return _config._weight_scale; }
     void set_weight_scale(float value) { _config._weight_scale = value; }
 
+    uint32_t device_id() const
+    {
+        return ESP.getChipId();
+    }
+
     size_t temp_control_profile_count() const
     {
         for (size_t i = 0; i < MAX_TEMP_CONTROL_PROFILES; ++i)
         {
-            if (!_config._temp_control_profiles[i].valid)
+            if (!_config._temp_control_profiles[i].name[0])
                 return i;
         }
         return MAX_TEMP_CONTROL_PROFILES;

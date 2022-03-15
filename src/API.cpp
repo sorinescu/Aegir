@@ -17,6 +17,7 @@
 #include "TempMeasure.hpp"
 #include "WeightMeasure.hpp"
 #include "MeasurementLog.hpp"
+#include "StringUtils.hpp"
 
 AsyncWebServer server(80);
 AsyncEventSource events("/api/events");
@@ -37,7 +38,7 @@ void API::start()
 
     // openapi
     server.on("/api/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getHistoryMinutes(request, _temp_history_recent, &_temp_stream_idx); });
+              { getHistoryRecent(request, _temp_history_recent, &_temp_stream_idx); });
 
     // openapi
     server.on("/api/temperature", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -45,7 +46,7 @@ void API::start()
 
     // openapi
     server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getHistoryMinutes(request, _weight_history_recent, &_weight_stream_idx); });
+              { getHistoryRecent(request, _weight_history_recent, &_weight_stream_idx); });
 
     // openapi
     server.on("/api/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -152,31 +153,11 @@ void API::start()
     _is_started = true;
 }
 
-void API::getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *log, size_t *curr_idx)
+void API::getHistoryRecent(AsyncWebServerRequest *request, MeasurementLogOps *log, size_t *curr_idx)
 {
     *curr_idx = (size_t)-1;
-
-    unsigned long start_time = 0;
-    if (request->hasArg("minutes"))
-    {
-        char *endptr;
-        const char *minutes_str = request->arg("minutes").c_str();
-
-        errno = 0;
-        unsigned long minutes = strtoul(minutes_str, &endptr, 10);
-        if (errno == ERANGE || *endptr != '\0' || minutes_str == endptr)
-        {
-            request->send(400, "text/plain", "Invalid 'minutes' parameter");
-            return;
-        }
-
-        unsigned long millis_ago = minutes * 60000UL;
-        if (millis() >= millis_ago)
-            start_time = millis() - millis_ago;
-    }
-
     AsyncWebServerResponse *response =
-        request->beginChunkedResponse("application/json", [curr_idx, log, start_time](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
+        request->beginChunkedResponse("application/json", [curr_idx, log](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
                                       {
                                           //Write up to "maxLen" bytes into "buffer" and return the amount written.
                                           //index equals the amount of bytes that have been already sent.
@@ -187,18 +168,11 @@ void API::getHistoryMinutes(AsyncWebServerRequest *request, MeasurementLogOps *l
                                           if (*curr_idx == size_t(-1))
                                           {
                                               *curr_idx = 0;
-                                              return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"start\":%ld,\"values\":[", millis(), start_time);
+                                              return snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"start\":%ld,\"values\":[", millis(), log->timeMillisAt(0));
                                           }
                                           if (*curr_idx > log->size())
                                           {
                                               return 0;
-                                          }
-
-                                          // Keep the most recent time entries (after start_time)
-                                          for (; *curr_idx < log->size(); (*curr_idx)++)
-                                          {
-                                              if (log->timeMillisAt(*curr_idx) >= start_time)
-                                                  break;
                                           }
 
                                           size_t sz;
@@ -224,6 +198,7 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
     /*
         Any of the top-level objects can be omitted. Schema:
         {
+            "device_id": <string, read-only>,
             "temp_control_profiles": [
                 {
                     "name": <string, max length 47>,
@@ -252,6 +227,8 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
     auto temp_control_profiles = json_obj["temp_control_profiles"].as<JsonArray>();
     if (!temp_control_profiles.isNull())
     {
+        Serial.printf("got temp_control_profiles count=%d\n", temp_control_profiles.size());
+
         if (temp_control_profiles.size() > MAX_TEMP_CONTROL_PROFILES)
         {
             request->send(400, "too many temperature control profiles");
@@ -266,8 +243,7 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
 
             TempControlProfile profile{};
 
-            strncpy(profile.name, profile_obj["name"].as<String>().c_str(), sizeof(profile.name) - 1);
-            profile.name[sizeof(profile.name) - 1] = 0;
+            _strlcpy(profile.name, profile_obj["name"].as<String>().c_str());
 
             auto relay_config_obj = profile_obj["relay_config"].as<JsonObject>();
             for (int i = 0; i < MAX_TEMP_CONTROL_PROFILE_RELAYS; ++i)
@@ -283,6 +259,8 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
                     relay_config->active = false;
                     continue;
                 }
+
+                Serial.printf("got temp profile=%s relay=%d relay_key=%s\n", profile.name, i, relay_key);
 
                 relay_config->active = true;
                 relay_config->kp = relay_obj["kp"].as<float>();
@@ -301,12 +279,12 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
     if (!firebase_auth_obj.isNull())
     {
         FirebaseAuthConfig firebase_auth{};
-        strncpy(firebase_auth.api_key, firebase_auth_obj["api_key"].as<String>().c_str(), sizeof(firebase_auth.api_key) - 1);
-        firebase_auth.api_key[sizeof(firebase_auth.api_key) - 1] = 0;
-        strncpy(firebase_auth.user_email, firebase_auth_obj["user_email"].as<String>().c_str(), sizeof(firebase_auth.user_email) - 1);
-        firebase_auth.user_email[sizeof(firebase_auth.user_email) - 1] = 0;
-        strncpy(firebase_auth.user_password, firebase_auth_obj["user_password"].as<String>().c_str(), sizeof(firebase_auth.user_password) - 1);
-        firebase_auth.user_password[sizeof(firebase_auth.user_password) - 1] = 0;
+
+        _strlcpy(firebase_auth.api_key, firebase_auth_obj["api_key"].as<String>().c_str());
+        _strlcpy(firebase_auth.user_email, firebase_auth_obj["user_email"].as<String>().c_str());
+        _strlcpy(firebase_auth.user_password, firebase_auth_obj["user_password"].as<String>().c_str());
+
+        app_config.set_firebase_auth(firebase_auth);
     }
 
     auto weight_scale_var = json_obj["weight_scale"];
@@ -323,8 +301,12 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
 void API::getConfig(AsyncWebServerRequest *request)
 {
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonDocument doc(2048);      // should be big enough to fit
+    DynamicJsonDocument doc(2048); // should be big enough to fit
     auto root = doc.to<JsonObject>();
+
+    char device_id[9];
+    ultoa(app_config.device_id(), device_id, 16);
+    root["device_id"] = device_id;
 
     size_t profile_count = app_config.temp_control_profile_count();
     if (profile_count)
@@ -362,7 +344,8 @@ void API::getConfig(AsyncWebServerRequest *request)
     root["weight_scale"] = app_config.weight_scale();
 
     auto firebase_auth = app_config.firebase_auth();
-    if (firebase_auth.api_key[0] != 0) {
+    if (firebase_auth.api_key[0] != 0)
+    {
         auto firebase_auth_obj = root.createNestedObject("firebase_auth");
         firebase_auth_obj["user_email"] = firebase_auth.user_email;
 
