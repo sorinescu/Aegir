@@ -26,8 +26,10 @@ class API
     void getConfig(AsyncWebServerRequest *request);
     void setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json);
 
+    void startTempControlProfileAutotune(AsyncWebServerRequest *request, JsonVariantWrapper const &json);
+
     unsigned long unixTimeAtMillis(unsigned long t_millis);
-    
+
 public:
     API(NTPClient *time_client, PositiveTempMeasure *temp, MeasurementLog<uint16_t> *temp_history_recent,
         WeightMeasure *weight, MeasurementLog<float> *weight_history_recent)

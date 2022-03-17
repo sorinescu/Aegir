@@ -5,19 +5,28 @@
 #define MAX_TEMP_CONTROL_PROFILE_RELAYS 2
 #define TEMP_CONTROL_PROFILE_NAME_SIZE 48
 
+enum TempRelayMode : uint8_t
+{
+    Disabled = 0, // Not used by the profile
+    Master = 1,   // Has its own parameters (kp,kd,ssr,normally_closed,cooling)
+    Slave = 2     // Doesn't have its own parameters, it's just used in the same way as the master relay
+};
+
 struct TempRelayConfig
 {
     float kp, kd, ki;
-    bool active;          // True if this relay is used by the profile and its config is valid
-    bool ssr;             // If true, the relay is a SRR; otherwise, it's a mechanical relay
+    TempRelayMode mode;   
+    bool ssr;             // If true, the relay is a SSR; otherwise, it's a mechanical relay
     bool normally_closed; // If true, the relay is closed when the control pin is OFF
     bool cooling;         // If true, the relay controls a cooling device; otherwise, it controls a heating device
 };
 
 struct TempControlProfile
 {
-    char name[TEMP_CONTROL_PROFILE_NAME_SIZE];                     // The profile is only valid if it has a non-empty name
-    TempRelayConfig relay_config[MAX_TEMP_CONTROL_PROFILE_RELAYS]; // There are only two physical relays on the board; the one(s) in use by the profile have the "in_use" flag set
+    char name[TEMP_CONTROL_PROFILE_NAME_SIZE]; // The profile is only valid if it has a non-empty name
+    TempRelayConfig
+        relay_config[MAX_TEMP_CONTROL_PROFILE_RELAYS]; // There are only two physical relays on the board; the one(s) in
+                                                       // use by the profile have the "in_use" flag set
 };
 
 struct FirebaseAuthConfig
@@ -29,13 +38,19 @@ struct FirebaseAuthConfig
 
 class AppConfig
 {
-public:
+  public:
     AppConfig();
 
     void begin();
 
-    float weight_scale() { return _config._weight_scale; }
-    void set_weight_scale(float value) { _config._weight_scale = value; }
+    float weight_scale()
+    {
+        return _config._weight_scale;
+    }
+    void set_weight_scale(float value)
+    {
+        _config._weight_scale = value;
+    }
 
     uint32_t device_id() const
     {
@@ -87,7 +102,7 @@ public:
     void commit();
     void reset();
 
-private:
+  private:
     struct
     {
         float _weight_scale;

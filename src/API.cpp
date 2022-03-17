@@ -1,24 +1,24 @@
 #ifdef ESP32
-#include <WiFi.h>
 #include <AsyncTCP.h>
+#include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #endif
-#include <ESPAsyncWebServer.h>
-#include <NTPClient.h>
-#include <AsyncJson.h>
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <AsyncJson.h>
+#include <ESPAsyncWebServer.h>
 #include <HX711.h>
+#include <LittleFS.h>
+#include <NTPClient.h>
 #include <errno.h>
 
 #include "API.hpp"
 #include "AppConfig.hpp"
-#include "TempMeasure.hpp"
-#include "WeightMeasure.hpp"
 #include "MeasurementLog.hpp"
 #include "StringUtils.hpp"
+#include "TempMeasure.hpp"
+#include "WeightMeasure.hpp"
 
 AsyncWebServer server(80);
 AsyncEventSource events("/api/events");
@@ -38,117 +38,129 @@ void API::start()
     Serial.println("Starting async web server...");
 
     // openapi
-    server.on("/api/temperature/history", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getHistoryRecent(request, _temp_history_recent, &_temp_stream_idx); });
+    server.on("/api/temp/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        getHistoryRecent(request, _temp_history_recent, &_temp_stream_idx);
+    });
 
     // openapi
-    server.on("/api/temperature", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { request->send(200, "text/plain", String(_temp->measureFloat(), 1)); });
+    server.on("/api/temp", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_temp->measureFloat(), 1));
+    });
 
     // openapi
-    server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getHistoryRecent(request, _weight_history_recent, &_weight_stream_idx); });
+    server.on("/api/weight/history", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        getHistoryRecent(request, _weight_history_recent, &_weight_stream_idx);
+    });
 
     // openapi
-    server.on("/api/weight/scale", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { request->send(200, "text/plain", String(_weight->scale())); });
+    server.on("/api/weight/scale", HTTP_GET,
+              [this](AsyncWebServerRequest *request) { request->send(200, "text/plain", String(_weight->scale())); });
 
     // openapi
-    server.on("/api/weight/scale", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-                  if (!request->hasParam("value", true))
-                  {
-                      request->send(400, "text/plain", "Missing 'value' parameter");
-                      return;
-                  }
+    server.on("/api/weight/scale", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!request->hasParam("value", true))
+        {
+            request->send(400, "text/plain", "Missing 'value' parameter");
+            return;
+        }
 
-                  char *endptr;
-                  const char *value_str = request->arg("value").c_str();
-                  errno = 0;
-                  float scale = strtof(value_str, &endptr);
-                  if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
-                  {
-                      request->send(400, "text/plain", "Invalid 'value' parameter");
-                      return;
-                  }
+        char *endptr;
+        const char *value_str = request->arg("value").c_str();
+        errno = 0;
+        float scale = strtof(value_str, &endptr);
+        if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
+        {
+            request->send(400, "text/plain", "Invalid 'value' parameter");
+            return;
+        }
 
-                  _weight->set_scale(scale);
-                  request->send(200, "text/plain", "OK"); });
-
-    // openapi
-    server.on("/api/weight/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-                  if (!request->hasParam("value", true))
-                  {
-                      request->send(400, "text/plain", "Missing 'value' parameter");
-                      return;
-                  }
-
-                  char *endptr;
-                  const char *value_str = request->arg("value").c_str();
-                  errno = 0;
-                  float weight = strtof(value_str, &endptr);
-                  if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
-                  {
-                      request->send(400, "text/plain", "Invalid 'value' parameter");
-                      return;
-                  }
-
-                  _weight->set_weight(weight);
-
-                  app_config.set_weight_scale(_weight->scale());
-                  app_config.commit();
-
-                  request->send(200, "text/plain", "OK"); });
+        _weight->set_scale(scale);
+        request->send(200, "text/plain", "OK");
+    });
 
     // openapi
-    server.on("/api/weight", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { request->send(200, "text/plain", String(_weight->measureFloat(), 1)); });
+    server.on("/api/weight/calibrate", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!request->hasParam("value", true))
+        {
+            request->send(400, "text/plain", "Missing 'value' parameter");
+            return;
+        }
+
+        char *endptr;
+        const char *value_str = request->arg("value").c_str();
+        errno = 0;
+        float weight = strtof(value_str, &endptr);
+        if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
+        {
+            request->send(400, "text/plain", "Invalid 'value' parameter");
+            return;
+        }
+
+        _weight->set_weight(weight);
+
+        app_config.set_weight_scale(_weight->scale());
+        app_config.commit();
+
+        request->send(200, "text/plain", "OK");
+    });
 
     // openapi
-    server.on("/api/weight", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-                  if (!request->hasParam("value", true))
-                  {
-                      request->send(400, "text/plain", "Missing 'value' parameter");
-                      return;
-                  }
+    server.on("/api/weight", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", String(_weight->measureFloat(), 1));
+    });
 
-                  char *endptr;
-                  const char *value_str = request->arg("value").c_str();
-                  errno = 0;
-                  float weight = strtof(value_str, &endptr);
-                  if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
-                  {
-                      request->send(400, "text/plain", "Invalid 'value' parameter");
-                      return;
-                  }
+    // openapi
+    server.on("/api/weight", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        if (!request->hasParam("value", true))
+        {
+            request->send(400, "text/plain", "Missing 'value' parameter");
+            return;
+        }
 
-                  _weight->set_weight_offset(weight);
-                  request->send(200, "text/plain", "OK"); });
+        char *endptr;
+        const char *value_str = request->arg("value").c_str();
+        errno = 0;
+        float weight = strtof(value_str, &endptr);
+        if (errno == ERANGE || *endptr != '\0' || value_str == endptr)
+        {
+            request->send(400, "text/plain", "Invalid 'value' parameter");
+            return;
+        }
 
-    AsyncCallbackJsonWebHandler *setAPIConfigHandler = new AsyncCallbackJsonWebHandler("/api/config", [this](AsyncWebServerRequest *request, JsonVariant &json)
-                                                                                       { setConfig(request, JsonVariantWrapper{json : json}); });
+        _weight->set_weight_offset(weight);
+        request->send(200, "text/plain", "OK");
+    });
+
+    AsyncCallbackJsonWebHandler *setAPIConfigHandler =
+        new AsyncCallbackJsonWebHandler("/api/config", [this](AsyncWebServerRequest *request, JsonVariant &json) {
+            setConfig(request, JsonVariantWrapper{json : json});
+        });
     setAPIConfigHandler->setMethod(HTTP_POST);
     server.addHandler(setAPIConfigHandler);
 
-    server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest *request)
-              { getConfig(request); });
+    server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest *request) { getConfig(request); });
 
-    events.onConnect([](AsyncEventSourceClient *client)
-                     {
-                         if (client->lastId())
-                         {
-                             Serial.printf("Client reconnected! Last message ID that it gat is: %u\n", client->lastId());
-                         } });
+    AsyncCallbackJsonWebHandler *startTempControlProfileAutotuneHandler = new AsyncCallbackJsonWebHandler(
+        "/api/temp-control-profile/autotune", [this](AsyncWebServerRequest *request, JsonVariant &json) {
+            startTempControlProfileAutotune(request, JsonVariantWrapper{json : json});
+        });
+    startTempControlProfileAutotuneHandler->setMethod(HTTP_POST);
+    server.addHandler(startTempControlProfileAutotuneHandler);
+
+    events.onConnect([](AsyncEventSourceClient *client) {
+        if (client->lastId())
+        {
+            Serial.printf("Client reconnected! Last message ID that it gat is: %u\n", client->lastId());
+        }
+    });
     server.addHandler(&events);
 
-    // The web server will serve gzipped files automatically if there's a file ending in '.gz' for the requested resource.
-    // It will server '/index.html' by default for '/'.
+    // The web server will serve gzipped files automatically if there's a file
+    // ending in '.gz' for the requested resource. It will server '/index.html'
+    // by default for '/'.
     server.serveStatic("/", LittleFS, "/web/");
 
-    server.onNotFound([](AsyncWebServerRequest *request)
-                      { request->send(404, "text/plain", "Not found"); });
+    server.onNotFound([](AsyncWebServerRequest *request) { request->send(404, "text/plain", "Not found"); });
 
     server.begin();
     _is_started = true;
@@ -157,42 +169,71 @@ void API::start()
 void API::getHistoryRecent(AsyncWebServerRequest *request, MeasurementLogOps *log, size_t *curr_idx)
 {
     *curr_idx = (size_t)-1;
-    AsyncWebServerResponse *response =
-        request->beginChunkedResponse("application/json", [this, curr_idx, log](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
-                                      {
-                                          //Write up to "maxLen" bytes into "buffer" and return the amount written.
-                                          //index equals the amount of bytes that have been already sent.
-                                          //You will be asked for more data until 0 is returned.
+    AsyncWebServerResponse *response = request->beginChunkedResponse(
+        "application/json", [this, curr_idx, log](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+            // Write up to "maxLen" bytes into "buffer" and return the amount
+            // written. index equals the amount of bytes that have been already
+            // sent. You will be asked for more data until 0 is returned.
 
-                                          // Serial.printf("tempIdx=%hu size=%hu maxLen=%u index=%u\n", *curr_idx, log->size(), maxLen, index);
+            // Serial.printf("tempIdx=%hu size=%hu maxLen=%u index=%u\n",
+            // *curr_idx, log->size(), maxLen, index);
 
-                                          if (*curr_idx == size_t(-1))
-                                          {
-                                              *curr_idx = 0;
-                                              return snprintf((char *)buffer, maxLen, "[");
-                                          }
-                                          if (*curr_idx > log->size())
-                                          {
-                                              return 0;
-                                          }
+            if (*curr_idx == size_t(-1))
+            {
+                *curr_idx = 0;
+                return snprintf((char *)buffer, maxLen, "[");
+            }
+            if (*curr_idx > log->size())
+            {
+                return 0;
+            }
 
-                                          size_t sz;
-                                          if (*curr_idx < log->size())
-                                          {
-                                              unsigned long t = log->timeMillisAt(*curr_idx);
-                                              sz = snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"value\":%f},", unixTimeAtMillis(t), log->at(*curr_idx));
-                                              if (*curr_idx + 1 == log->size())
-                                                  sz--; // Remove final ','
-                                          }
-                                          else
-                                          {
-                                              sz = snprintf((char *)buffer, maxLen, "]");
-                                          }
+            size_t sz;
+            if (*curr_idx < log->size())
+            {
+                unsigned long t = log->timeMillisAt(*curr_idx);
+                sz = snprintf((char *)buffer, maxLen, "{\"ts\":%ld,\"value\":%f},", unixTimeAtMillis(t),
+                              log->at(*curr_idx));
+                if (*curr_idx + 1 == log->size())
+                    sz--; // Remove final ','
+            }
+            else
+            {
+                sz = snprintf((char *)buffer, maxLen, "]");
+            }
 
-                                          (*curr_idx)++;
-                                          return sz; });
+            (*curr_idx)++;
+            return sz;
+        });
 
     request->send(response);
+}
+
+void API::startTempControlProfileAutotune(AsyncWebServerRequest *request, JsonVariantWrapper const &json)
+{
+    /*
+        Schema:
+        {
+            "idx": <int>,
+            "target_temp": <float>,
+            "emergency_stop_temp": <float>,
+            "temp_range_min": <float>,
+            "temp_range_max": <float>,
+            "output_step": <float, optional>,
+            "test_duration_seconds": <int, otional>,
+            "sample_count": <int, optional>
+        }
+    */
+    auto json_obj = json.json.as<JsonObject>();
+
+    auto profile_index = json_obj["idx"].as<int>();
+    if (profile_index < 0 || profile_index >= app_config.temp_control_profile_count())
+    {
+        request->send(400, "temp control profile index out of range");
+        return;
+    }
+
+    request->send(200, "text/plain", "OK");
 }
 
 void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &json)
@@ -206,6 +247,7 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
                     "name": <string, max length 47>,
                     "relay_config": {
                         "0": {
+                            "slave": <bool, if true all other parameters are ignored>,
                             "kp": <float>,
                             "kd": <float>,
                             "ki": <float>,
@@ -229,7 +271,8 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
     auto temp_control_profiles = json_obj["temp_control_profiles"].as<JsonArray>();
     if (!temp_control_profiles.isNull())
     {
-        // Serial.printf("got temp_control_profiles count=%d\n", temp_control_profiles.size());
+        // Serial.printf("got temp_control_profiles count=%d\n",
+        // temp_control_profiles.size());
 
         if (temp_control_profiles.size() > MAX_TEMP_CONTROL_PROFILES)
         {
@@ -262,7 +305,8 @@ void API::setConfig(AsyncWebServerRequest *request, JsonVariantWrapper const &js
                     continue;
                 }
 
-                // Serial.printf("got temp profile=%s relay=%d relay_key=%s\n", profile.name, i, relay_key);
+                // Serial.printf("got temp profile=%s relay=%d relay_key=%s\n",
+                // profile.name, i, relay_key);
 
                 relay_config->active = true;
                 relay_config->kp = relay_obj["kp"].as<float>();
